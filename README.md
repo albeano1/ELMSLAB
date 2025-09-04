@@ -68,11 +68,6 @@ curl -X POST "http://127.0.0.1:8000/convert" \
      -H "Content-Type: application/json" \
      -d '{"text": "It is not raining", "include_truth_table": true}' | python3 -m json.tool
 ```
-
-### 3. View API Documentation
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
 ## API Endpoints
 
 ### Convert Text to Logic
@@ -249,5 +244,3 @@ This project is part of the ELMS LAB.
 
 
 **ELMSLAB CPSC26-08** - Advancing True Reasoning Models
-
-*This project successfully demonstrates the conversion of natural language to propositional logic with proper negation handling, truth table generation, and logical inference capabilities.*
