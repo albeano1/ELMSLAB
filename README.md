@@ -131,15 +131,6 @@ Content-Type: application/json
 }
 ```
 
-### Health Check
-```http
-GET /health
-```
-
-### Get Examples
-```http
-GET /examples
-```
 
 ## Working Examples
 
