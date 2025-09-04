@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logic Reasoning Engine</title>
+    <title>Enhanced Logic Reasoning Engine</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -26,6 +26,36 @@
             margin-bottom: 30px;
         }
         
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #bdc3c7;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background-color: #ecf0f1;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            width: auto;
+        }
+        
+        .tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
         .section {
             margin-bottom: 25px;
         }
@@ -37,7 +67,7 @@
             color: #34495e;
         }
         
-        textarea, input {
+        textarea, input, select {
             width: 100%;
             padding: 10px;
             border: 2px solid #bdc3c7;
@@ -79,6 +109,99 @@
             font-weight: bold;
         }
         
+        /* Enhanced Temporal Logic Result Styling */
+        .temporal-result {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .temporal-result h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .temporal-result h4 {
+            color: #34495e;
+            margin: 15px 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .formula-display {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+        }
+        
+        .formula-display code {
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .component-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #27ae60;
+        }
+        
+        .component-label {
+            font-weight: bold;
+            color: #2c3e50;
+            text-transform: capitalize;
+        }
+        
+        .component-value {
+            color: #27ae60;
+            font-family: 'Courier New', monospace;
+            margin-left: 8px;
+        }
+        
+        .alternatives-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .alternative-item {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 5px;
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .alternative-label {
+            font-weight: bold;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .alternative-value {
+            background-color: #e9ecef;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #2c3e50;
+            display: block;
+            word-break: break-all;
+        }
+        
         .valid {
             background-color: #d5f4e6;
             color: #27ae60;
@@ -101,6 +224,12 @@
             background-color: #fff3cd;
             color: #856404;
             border: 2px solid #ffc107;
+        }
+        
+        .success {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #17a2b8;
         }
         
         .details {
@@ -129,52 +258,216 @@
             margin-left: 10px;
             width: auto;
         }
+        
+        .example-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .example-btn {
+            background-color: #17a2b8;
+            font-size: 14px;
+            padding: 8px 16px;
+            width: auto;
+            margin: 0;
+        }
+        
+        .example-btn:hover {
+            background-color: #138496;
+        }
+        
+        .knowledge-facts {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .fact-item {
+            padding: 5px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 12px;
+        }
+        
+        .fact-item:last-child {
+            border-bottom: none;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🧠 Enhanced Logic Reasoning Engine</h1>
         <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
-            Supports both Propositional Logic and First-Order Logic with Quantifiers
+            Supports Propositional Logic, First-Order Logic, Temporal Logic, and Knowledge Base
         </p>
         
-        <div class="section">
-            <h2>Premises:</h2>
-            <div id="premises-container">
-                <div class="premise-container">
-                    <label>Premise 1:</label>
-                    <textarea id="premise1" placeholder="e.g., All humans are mortal">All humans are mortal</textarea>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('inference')">🔍 Logical Inference</button>
+            <button class="tab" onclick="switchTab('knowledge')">📚 Knowledge Base</button>
+            <button class="tab" onclick="switchTab('temporal')">⏰ Temporal Logic</button>
+            <button class="tab" onclick="switchTab('convert')">🔄 Convert Text</button>
+        </div>
+        
+        <!-- Logical Inference Tab -->
+        <div id="inference-tab" class="tab-content active">
+            <div class="section">
+                <h2>Premises:</h2>
+                <div id="premises-container">
+                    <div class="premise-container">
+                        <label>Premise 1:</label>
+                        <textarea id="premise1" placeholder="e.g., All humans are mortal">All humans are mortal</textarea>
+                    </div>
+                    <div class="premise-container">
+                        <label>Premise 2:</label>
+                        <textarea id="premise2" placeholder="e.g., Socrates is human">Socrates is human</textarea>
+                    </div>
                 </div>
-                <div class="premise-container">
-                    <label>Premise 2:</label>
-                    <textarea id="premise2" placeholder="e.g., Socrates is human">Socrates is human</textarea>
+                <button class="add-premise" onclick="addPremise()">+ Add Premise</button>
+            </div>
+            
+            <div class="section">
+                <h2>Conclusion:</h2>
+                <textarea id="conclusion" placeholder="e.g., Socrates is mortal">Socrates is mortal</textarea>
+            </div>
+            
+            <div class="section">
+                <label for="logicType">Logic Type:</label>
+                <select id="logicType">
+                    <option value="auto">Auto-detect (Recommended)</option>
+                    <option value="propositional">Propositional Logic</option>
+                    <option value="first_order">First-Order Logic</option>
+                    <option value="temporal">Temporal Logic</option>
+                </select>
+            </div>
+            
+            <button onclick="checkInference()" id="checkButton">🔍 Check Validity</button>
+            
+            <div class="section">
+                <h3>Quick Examples:</h3>
+                <div class="example-buttons">
+                    <button class="example-btn" onclick="loadExample('socrates')">Socrates Example</button>
+                    <button class="example-btn" onclick="loadExample('business')">Business Logic</button>
+                    <button class="example-btn" onclick="loadExample('birds')">Birds Example</button>
+                    <button class="example-btn" onclick="loadExample('propositional')">Propositional Logic</button>
                 </div>
             </div>
-            <button class="add-premise" onclick="addPremise()">+ Add Premise</button>
         </div>
         
-        <div class="section">
-            <h2>Conclusion:</h2>
-            <textarea id="conclusion" placeholder="e.g., Socrates is mortal">Socrates is mortal</textarea>
+        <!-- Knowledge Base Tab -->
+        <div id="knowledge-tab" class="tab-content">
+            <div class="two-column">
+                <div>
+                    <h2>📚 Add Facts to Knowledge Base</h2>
+                    <div class="section">
+                        <label for="factInput">Fact:</label>
+                        <textarea id="factInput" placeholder="e.g., All birds have wings">All birds have wings</textarea>
+                        <button onclick="addFact()" id="addFactButton">+ Add Fact</button>
+                    </div>
+                    
+                    <div class="section">
+                        <h3>Quick Fact Examples:</h3>
+                        <div class="example-buttons">
+                            <button class="example-btn" onclick="loadFactExample('birds')">Birds & Wings</button>
+                            <button class="example-btn" onclick="loadFactExample('animals')">Animals</button>
+                            <button class="example-btn" onclick="loadFactExample('temporal')">Temporal Facts</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h2>🔍 Query Knowledge Base</h2>
+                    <div class="section">
+                        <label for="queryInput">Question:</label>
+                        <textarea id="queryInput" placeholder="e.g., Does Tweety have wings?">Does Tweety have wings?</textarea>
+                        <button onclick="queryKnowledge()" id="queryButton">🔍 Query</button>
+                    </div>
+                    
+                    <div class="section">
+                        <h3>Quick Query Examples:</h3>
+                        <div class="example-buttons">
+                            <button class="example-btn" onclick="loadQueryExample('wings')">Wings Query</button>
+                            <button class="example-btn" onclick="loadQueryExample('bird')">Bird Query</button>
+                            <button class="example-btn" onclick="loadQueryExample('temporal')">Temporal Query</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>📋 Current Knowledge Base Facts:</h3>
+                <button class="example-btn" onclick="loadAllFacts()" style="width: auto; margin-bottom: 10px;">🔄 Refresh Facts</button>
+                <button class="example-btn" onclick="clearKnowledge()" style="width: auto; margin-bottom: 10px; background-color: #e74c3c;">🗑️ Clear All</button>
+                <div id="knowledgeFacts" class="knowledge-facts">
+                    <div class="fact-item">Click "Refresh Facts" to load current knowledge base...</div>
+                </div>
+            </div>
         </div>
         
-        <div class="section">
-            <label for="logicType">Logic Type:</label>
-            <select id="logicType" style="width: 100%; padding: 10px; border: 2px solid #bdc3c7; border-radius: 5px; font-size: 14px;">
-                <option value="auto">Auto-detect (Recommended)</option>
-                <option value="propositional">Propositional Logic</option>
-                <option value="first_order">First-Order Logic</option>
-            </select>
+        <!-- Enhanced Temporal Logic Tab -->
+        <div id="temporal-tab" class="tab-content">
+            <div class="section">
+                <h2>⏰ Enhanced Temporal Logic Converter</h2>
+                <p><strong>NEW:</strong> Preserves all semantic information (subject, action, destination, temporal context) and provides multiple logic representations!</p>
+                <label for="temporalInput">Text with temporal expressions:</label>
+                <textarea id="temporalInput" placeholder="e.g., I will go to school tomorrow">I will go to school tomorrow</textarea>
+                <button onclick="convertTemporal()" id="temporalButton">⏰ Convert to Enhanced Temporal Logic</button>
+            </div>
+            
+            <div class="section">
+                <h3>Enhanced Temporal Logic Examples:</h3>
+                <div class="example-buttons">
+                    <button class="example-btn" onclick="loadTemporalExample('past')">Past Events</button>
+                    <button class="example-btn" onclick="loadTemporalExample('future')">Future Events</button>
+                    <button class="example-btn" onclick="loadTemporalExample('always')">Always/Eventually</button>
+                    <button class="example-btn" onclick="loadTemporalExample('conditional')">Temporal Conditionals</button>
+                </div>
+                <p><em>Try these examples to see the dramatic improvement from simple "Future(go)" to comprehensive temporal logic with component extraction!</em></p>
+            </div>
         </div>
         
-        <button onclick="checkInference()" id="checkButton">🔍 Check Validity</button>
-        
-        <div class="section">
-            <h3>Quick Examples:</h3>
-            <button class="add-premise" onclick="loadExample('socrates')" style="margin-right: 10px;">Socrates Example</button>
-            <button class="add-premise" onclick="loadExample('business')" style="margin-right: 10px;">Business Logic</button>
-            <button class="add-premise" onclick="loadExample('birds')" style="margin-right: 10px;">Birds Example</button>
-            <button class="add-premise" onclick="loadExample('propositional')">Propositional Logic</button>
+        <!-- Convert Text Tab -->
+        <div id="convert-tab" class="tab-content">
+            <div class="section">
+                <h2>🔄 Convert Natural Language to Logic</h2>
+                <label for="convertInput">Text to convert:</label>
+                <textarea id="convertInput" placeholder="e.g., If it rains then the ground is wet">If it rains then the ground is wet</textarea>
+                
+                <label for="convertLogicType">Logic Type:</label>
+                <select id="convertLogicType">
+                    <option value="auto">Auto-detect (Recommended)</option>
+                    <option value="propositional">Propositional Logic</option>
+                    <option value="first_order">First-Order Logic</option>
+                    <option value="temporal">Temporal Logic</option>
+                </select>
+                
+                <button onclick="convertText()" id="convertButton">🔄 Convert</button>
+            </div>
+            
+            <div class="section">
+                <h3>Conversion Examples:</h3>
+                <div class="example-buttons">
+                    <button class="example-btn" onclick="loadConvertExample('propositional')">Propositional</button>
+                    <button class="example-btn" onclick="loadConvertExample('first_order')">First-Order</button>
+                    <button class="example-btn" onclick="loadConvertExample('temporal')">Temporal</button>
+                    <button class="example-btn" onclick="loadConvertExample('mixed')">Mixed Types</button>
+                </div>
+            </div>
         </div>
         
         <div id="result"></div>
@@ -183,6 +476,24 @@
     <script>
         let premiseCount = 2;
         
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+        
+        // Inference functionality
         function addPremise() {
             premiseCount++;
             const container = document.getElementById('premises-container');
@@ -282,53 +593,303 @@
             }
         }
         
-        function showResult(message, type, details = null) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.className = `result ${type}`;
-            resultDiv.innerHTML = message;
+        // Knowledge Base functionality
+        async function addFact() {
+            const factInput = document.getElementById('factInput');
+            const addButton = document.getElementById('addFactButton');
+            const fact = factInput.value.trim();
             
-            if (details) {
-                const detailsDiv = document.createElement('div');
-                detailsDiv.className = 'details';
+            if (!fact) {
+                showResult('Please enter a fact.', 'error');
+                return;
+            }
+            
+            addButton.disabled = true;
+            showResult('Adding fact...', 'loading');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/knowledge/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fact: fact
+                    })
+                });
                 
-                let detailsHTML = `<strong>Logic Type:</strong> ${details.logic_type || 'Unknown'}<br>`;
-                detailsHTML += `<strong>Explanation:</strong> ${details.explanation || 'No explanation available'}<br>`;
-                
-                if (details.premises && details.premises.length > 0) {
-                    detailsHTML += `<strong>Parsed Premises:</strong><br>`;
-                    details.premises.forEach((premise, index) => {
-                        detailsHTML += `&nbsp;&nbsp;${index + 1}. ${premise}<br>`;
-                    });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                if (details.conclusion) {
-                    detailsHTML += `<strong>Parsed Conclusion:</strong> ${details.conclusion}<br>`;
-                }
+                const result = await response.json();
+                showResult(`✅ Fact added: ${result.message}`, 'success');
+                factInput.value = '';
+                loadAllFacts(); // Refresh the facts list
                 
-                if (details.implication) {
-                    detailsHTML += `<strong>Implication:</strong> ${details.implication}<br>`;
-                }
-                
-                if (details.truth_table_summary) {
-                    detailsHTML += `<strong>Truth Table:</strong> ` +
-                        `Tautology: ${details.truth_table_summary.is_tautology}, ` +
-                        `Contradiction: ${details.truth_table_summary.is_contradiction}, ` +
-                        `Satisfiable: ${details.truth_table_summary.is_satisfiable}<br>`;
-                }
-                
-                if (details.counterexample) {
-                    detailsHTML += `<strong>Counterexample:</strong> ${details.counterexample.description}<br>`;
-                }
-                
-                if (details.note) {
-                    detailsHTML += `<strong>Note:</strong> ${details.note}<br>`;
-                }
-                
-                detailsDiv.innerHTML = detailsHTML;
-                resultDiv.appendChild(detailsDiv);
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            } finally {
+                addButton.disabled = false;
             }
         }
         
+        async function queryKnowledge() {
+            const queryInput = document.getElementById('queryInput');
+            const queryButton = document.getElementById('queryButton');
+            const question = queryInput.value.trim();
+            
+            if (!question) {
+                showResult('Please enter a question.', 'error');
+                return;
+            }
+            
+            queryButton.disabled = true;
+            showResult('Querying knowledge base...', 'loading');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/knowledge/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                let resultClass = 'success';
+                let resultIcon = '✅';
+                if (result.answer === 'Unknown') {
+                    resultClass = 'loading';
+                    resultIcon = '❓';
+                } else if (result.answer === 'No') {
+                    resultClass = 'invalid';
+                    resultIcon = '❌';
+                }
+                
+                showResult(
+                    `${resultIcon} ${result.answer}`,
+                    resultClass,
+                    {
+                        reasoning: result.reasoning,
+                        confidence: result.confidence,
+                        relevant_facts: result.relevant_facts
+                    }
+                );
+                
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            } finally {
+                queryButton.disabled = false;
+            }
+        }
+        
+        async function loadAllFacts() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/knowledge/facts');
+                const result = await response.json();
+                
+                const factsDiv = document.getElementById('knowledgeFacts');
+                if (result.facts && result.facts.length > 0) {
+                    factsDiv.innerHTML = result.facts.map(fact => 
+                        `<div class="fact-item">
+                            <strong>${fact.text}</strong><br>
+                            <small>→ ${fact.formula} (${fact.formula_type})</small>
+                        </div>`
+                    ).join('');
+                } else {
+                    factsDiv.innerHTML = '<div class="fact-item">No facts in knowledge base yet.</div>';
+                }
+            } catch (error) {
+                document.getElementById('knowledgeFacts').innerHTML = 
+                    '<div class="fact-item">Error loading facts: ' + error.message + '</div>';
+            }
+        }
+        
+        async function clearKnowledge() {
+            if (!confirm('Are you sure you want to clear all facts from the knowledge base?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/knowledge/clear', {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showResult('✅ Knowledge base cleared successfully.', 'success');
+                    loadAllFacts();
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Enhanced Temporal Logic functionality
+        async function convertTemporal() {
+            const temporalInput = document.getElementById('temporalInput');
+            const temporalButton = document.getElementById('temporalButton');
+            const text = temporalInput.value.trim();
+            
+            if (!text) {
+                showResult('Please enter text to convert.', 'error');
+                return;
+            }
+            
+            temporalButton.disabled = true;
+            showResult('Converting to enhanced temporal logic...', 'loading');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        mode: 'temporal'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                // Enhanced display for temporal logic results with better formatting
+                let resultText = `<div class="temporal-result">
+                    <h3>⏰ Enhanced Temporal Logic Result</h3>
+                    <div class="formula-display">
+                        <strong>Temporal Formula:</strong> <code>${result.temporal_formula}</code>
+                    </div>
+                    
+                    <div class="components-section">
+                        <h4>📊 Component Breakdown</h4>
+                        <div class="components-grid">`;
+                
+                if (result.components) {
+                    for (const [key, value] of Object.entries(result.components)) {
+                        resultText += `<div class="component-item">
+                            <span class="component-label">${key.replace('_', ' ')}:</span>
+                            <span class="component-value">${value}</span>
+                        </div>`;
+                    }
+                }
+                
+                resultText += `</div></div>`;
+                
+                if (result.alternative_representations) {
+                    resultText += `<div class="alternatives-section">
+                        <h4>🔄 Alternative Representations</h4>
+                        <div class="alternatives-grid">`;
+                    for (const [key, value] of Object.entries(result.alternative_representations)) {
+                        resultText += `<div class="alternative-item">
+                            <span class="alternative-label">${key.toUpperCase()}:</span>
+                            <code class="alternative-value">${value}</code>
+                        </div>`;
+                    }
+                    resultText += `</div></div>`;
+                }
+                
+                resultText += `</div>`;
+                
+                showResult(
+                    resultText,
+                    'success',
+                    {
+                        confidence: result.confidence,
+                        reasoning: result.reasoning,
+                        components: result.components,
+                        alternatives: result.alternative_representations
+                    }
+                );
+                
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            } finally {
+                temporalButton.disabled = false;
+            }
+        }
+        
+        // Convert Text functionality
+        async function convertText() {
+            const convertInput = document.getElementById('convertInput');
+            const convertButton = document.getElementById('convertButton');
+            const text = convertInput.value.trim();
+            const logicType = document.getElementById('convertLogicType').value;
+            
+            if (!text) {
+                showResult('Please enter text to convert.', 'error');
+                return;
+            }
+            
+            convertButton.disabled = true;
+            showResult('Converting text...', 'loading');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        logic_type: logicType
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                let formula = '';
+                let resultType = '';
+                
+                if (result.temporal_formula) {
+                    formula = result.temporal_formula;
+                    resultType = 'Temporal Logic';
+                } else if (result.first_order_formula) {
+                    formula = result.first_order_formula;
+                    resultType = 'First-Order Logic';
+                } else if (result.propositional_formula) {
+                    formula = result.propositional_formula;
+                    resultType = 'Propositional Logic';
+                } else {
+                    formula = 'No formula generated';
+                    resultType = 'Unknown';
+                }
+                
+                showResult(
+                    `🔄 ${resultType}: ${formula}`,
+                    'success',
+                    {
+                        detected_logic_type: result.detected_logic_type,
+                        confidence: result.confidence,
+                        atoms: result.atoms,
+                        note: result.note
+                    }
+                );
+                
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            } finally {
+                convertButton.disabled = false;
+            }
+        }
+        
+        // Example loading functions
         function loadExample(type) {
             // Clear existing premises
             const container = document.getElementById('premises-container');
@@ -364,6 +925,77 @@
             }
         }
         
+        function loadFactExample(type) {
+            const factInput = document.getElementById('factInput');
+            switch(type) {
+                case 'birds':
+                    factInput.value = 'All birds have wings';
+                    break;
+                case 'animals':
+                    factInput.value = 'All cats are animals';
+                    break;
+                case 'temporal':
+                    factInput.value = 'It rained yesterday';
+                    break;
+            }
+        }
+        
+        function loadQueryExample(type) {
+            const queryInput = document.getElementById('queryInput');
+            switch(type) {
+                case 'wings':
+                    queryInput.value = 'Does Tweety have wings?';
+                    break;
+                case 'bird':
+                    queryInput.value = 'Is a penguin a bird?';
+                    break;
+                case 'temporal':
+                    queryInput.value = 'Did it rain in the past?';
+                    break;
+            }
+        }
+        
+        function loadTemporalExample(type) {
+            const temporalInput = document.getElementById('temporalInput');
+            switch(type) {
+                case 'past':
+                    temporalInput.value = 'I went to school yesterday';
+                    break;
+                case 'future':
+                    temporalInput.value = 'I will go to school tomorrow';
+                    break;
+                case 'always':
+                    temporalInput.value = 'The sun always rises in the east';
+                    break;
+                case 'conditional':
+                    temporalInput.value = 'If it rains tomorrow then I will stay home';
+                    break;
+            }
+        }
+        
+        function loadConvertExample(type) {
+            const convertInput = document.getElementById('convertInput');
+            const convertLogicType = document.getElementById('convertLogicType');
+            switch(type) {
+                case 'propositional':
+                    convertInput.value = 'It is sunny and warm';
+                    convertLogicType.value = 'propositional';
+                    break;
+                case 'first_order':
+                    convertInput.value = 'All students study hard';
+                    convertLogicType.value = 'first_order';
+                    break;
+                case 'temporal':
+                    convertInput.value = 'I will finish this project soon';
+                    convertLogicType.value = 'temporal';
+                    break;
+                case 'mixed':
+                    convertInput.value = 'If it rains then the ground is wet';
+                    convertLogicType.value = 'auto';
+                    break;
+            }
+        }
+        
         function addPremiseWithText(text) {
             premiseCount++;
             const container = document.getElementById('premises-container');
@@ -377,9 +1009,92 @@
             container.appendChild(newPremise);
         }
         
-        // Load example on page load
+        function showResult(message, type, details = null) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            
+            // Check if message contains HTML (for temporal logic results)
+            if (message.includes('<div class="temporal-result">')) {
+                resultDiv.innerHTML = message;
+            } else {
+                resultDiv.innerHTML = message;
+            }
+            
+            if (details) {
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'details';
+                
+                let detailsHTML = '';
+                
+                if (details.logic_type) {
+                    detailsHTML += `<strong>Logic Type:</strong> ${details.logic_type}<br>`;
+                }
+                
+                if (details.detected_logic_type) {
+                    detailsHTML += `<strong>Detected Type:</strong> ${details.detected_logic_type}<br>`;
+                }
+                
+                if (details.explanation) {
+                    detailsHTML += `<strong>Explanation:</strong> ${details.explanation}<br>`;
+                }
+                
+                if (details.reasoning) {
+                    detailsHTML += `<strong>Reasoning:</strong> ${details.reasoning}<br>`;
+                }
+                
+                if (details.confidence) {
+                    detailsHTML += `<strong>Confidence:</strong> ${details.confidence}<br>`;
+                }
+                
+                if (details.premises && details.premises.length > 0) {
+                    detailsHTML += `<strong>Parsed Premises:</strong><br>`;
+                    details.premises.forEach((premise, index) => {
+                        detailsHTML += `&nbsp;&nbsp;${index + 1}. ${premise}<br>`;
+                    });
+                }
+                
+                if (details.conclusion) {
+                    detailsHTML += `<strong>Parsed Conclusion:</strong> ${details.conclusion}<br>`;
+                }
+                
+                if (details.implication) {
+                    detailsHTML += `<strong>Implication:</strong> ${details.implication}<br>`;
+                }
+                
+                if (details.atoms && details.atoms.length > 0) {
+                    detailsHTML += `<strong>Atoms:</strong> ${details.atoms.join(', ')}<br>`;
+                }
+                
+                if (details.relevant_facts && details.relevant_facts.length > 0) {
+                    detailsHTML += `<strong>Relevant Facts:</strong><br>`;
+                    details.relevant_facts.forEach((fact, index) => {
+                        detailsHTML += `&nbsp;&nbsp;${index + 1}. ${fact.text} → ${fact.formula}<br>`;
+                    });
+                }
+                
+                if (details.truth_table_summary) {
+                    detailsHTML += `<strong>Truth Table:</strong> ` +
+                        `Tautology: ${details.truth_table_summary.is_tautology}, ` +
+                        `Contradiction: ${details.truth_table_summary.is_contradiction}, ` +
+                        `Satisfiable: ${details.truth_table_summary.is_satisfiable}<br>`;
+                }
+                
+                if (details.counterexample) {
+                    detailsHTML += `<strong>Counterexample:</strong> ${details.counterexample.description}<br>`;
+                }
+                
+                if (details.note) {
+                    detailsHTML += `<strong>Note:</strong> ${details.note}<br>`;
+                }
+                
+                detailsDiv.innerHTML = detailsHTML;
+                resultDiv.appendChild(detailsDiv);
+            }
+        }
+        
+        // Load knowledge base facts on page load
         window.onload = function() {
-            // Example is already loaded in the textareas
+            loadAllFacts();
         };
     </script>
 </body>

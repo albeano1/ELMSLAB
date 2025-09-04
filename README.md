@@ -8,9 +8,10 @@ This project addresses the challenge of converting natural language text into fo
 
 ## Features
 
-### 🧠 **Dual Logic Support**
+### 🧠 **Triple Logic Support**
 - **Propositional Logic**: Complete support for AND (∧), OR (∨), NOT (¬), IMPLIES (→), and IFF (↔)
 - **First-Order Logic**: Universal (∀) and existential (∃) quantifiers with predicates and individual constants
+- **Temporal Logic**: Enhanced temporal operators (◯ Next, ◊ Eventually, □ Always, ● Previous) with component extraction
 - **Automatic Detection**: Smart logic type detection based on natural language patterns
 
 ### 🔍 **Advanced Natural Language Processing**
@@ -18,6 +19,8 @@ This project addresses the challenge of converting natural language text into fo
 - **Proper Negation Handling**: Correctly processes negation using spaCy's `neg` dependency
 - **Quantifier Recognition**: Detects "All", "Some", "Every", "There exists" patterns
 - **Individual Constants**: Handles proper names like "Socrates", "John", etc.
+- **Enhanced Temporal Parsing**: Extracts subject, action, destination, and temporal expressions
+- **Component Preservation**: Maintains all semantic information in temporal logic formulas
 
 ### ⚡ **Powerful Inference Engine**
 - **Propositional Inference**: 100% accurate truth table-based reasoning
@@ -25,6 +28,12 @@ This project addresses the challenge of converting natural language text into fo
 - **Pattern Recognition**: Detects common inference patterns (Modus Ponens, Modus Tollens, etc.)
 - **Fallacy Detection**: Identifies invalid arguments with counterexamples
 - **Explanation Generation**: Human-readable explanations of reasoning results
+
+### 🕒 **Enhanced Temporal Logic**
+- **Component Extraction**: Preserves subject, action, destination, and temporal information
+- **Proper Temporal Operators**: Uses standard LTL symbols (◯, ◊, □, ●)
+- **Alternative Representations**: Provides LTL, MTL, and First-Order temporal logic formats
+- **Real-World Applications**: Enables schedule verification, requirement checking, and planning
 
 ### 🌐 **User-Friendly Interface**
 - **Interactive Web UI**: Modern HTML interface with example buttons
@@ -81,6 +90,48 @@ python enhanced_fol_api.py
 ```
 
 The API will start at `http://127.0.0.1:8000`
+
+## 🕒 Enhanced Temporal Logic: Before vs After
+
+### ❌ **Old Parser (Too Simplistic)**
+```json
+{
+  "temporal_formula": "Future(go)",
+  "confidence": 0.8,
+  "problems": [
+    "Lost the subject (who is going?)",
+    "Lost the destination (go where?)", 
+    "Lost specific temporal information (when exactly?)"
+  ]
+}
+```
+
+### ✅ **New Enhanced Parser (Comprehensive)**
+```json
+{
+  "temporal_formula": "◯(go_to_school(i))",
+  "confidence": 0.9,
+  "components": {
+    "temporal_operator": "tomorrow",
+    "predicate": "go_to_school(i)",
+    "subject": "i",
+    "action": "go", 
+    "destination": "school",
+    "time_reference": "tomorrow"
+  },
+  "alternative_representations": {
+    "ltl": "◯(go_to_school(i))",
+    "mtl": "F[1d,1d](go_to_school(i))",
+    "first_order": "∃t(tomorrow(t) ∧ at(t, go_to_school(i)))"
+  }
+}
+```
+
+### 🎯 **Key Improvements**
+- **Preserves All Information**: Subject, action, destination, and temporal context
+- **Proper Temporal Operators**: Uses standard LTL symbols (◯ for next, ◊ for eventually, □ for always, ● for previous)
+- **Multiple Representations**: Provides LTL, MTL, and First-Order temporal logic formats
+- **Real-World Ready**: Enables actual reasoning about schedules, requirements, and planning
 
 ### 3. Test the System
 
@@ -222,6 +273,8 @@ Content-Type: application/json
 | Natural Language | First-Order Logic | Type |
 |------------------|-------------------|------|
 | "All humans are mortal" | `∀h((humans(h) → mortal(h)))` | Universal Quantifier |
+
+
 | "Some birds cannot fly" | `∃b((birds(b) ∧ ¬fly(b)))` | Existential Quantifier |
 | "Socrates is human" | `human(Socrates)` | Individual Statement |
 | "Every student studies" | `∀s((student(s) → studies(s)))` | Universal Quantifier |

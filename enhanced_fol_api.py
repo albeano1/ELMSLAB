@@ -21,6 +21,8 @@ from src.models.first_order_logic import (
 )
 from src.utils.formula_utils import FormulaUtils
 from src.core.first_order_parser import FirstOrderLogicConverter
+from src.core.temporal_parser import TemporalLogicConverter
+from src.core.knowledge_base import KnowledgeBase
 
 # Load spaCy model
 try:
@@ -47,6 +49,8 @@ app.add_middleware(
 
 formula_utils = FormulaUtils()
 fol_converter = FirstOrderLogicConverter()
+temporal_converter = TemporalLogicConverter()
+knowledge_base = KnowledgeBase()
 
 def simple_parse_formula(formula_str: str) -> Formula:
     """Simple formula parser for propositional logic"""
@@ -309,9 +313,26 @@ class InferenceRequest(BaseModel):
     conclusion: str
     logic_type: str = "auto"  # "propositional", "first_order", or "auto"
 
+class KnowledgeRequest(BaseModel):
+    fact: str
+
+class QueryRequest(BaseModel):
+    question: str
+
 def detect_logic_type(text: str) -> str:
-    """Detect whether text requires propositional or first-order logic"""
+    """Detect whether text requires propositional, first-order, or temporal logic"""
     text_lower = text.lower()
+    
+    # Check for temporal logic indicators first
+    temporal_indicators = [
+        'yesterday', 'tomorrow', 'last', 'next', 'ago', 'will', 'shall',
+        'was', 'were', 'had', 'did', 'going to', 'gonna', 'then',
+        'afterwards', 'after that', 'subsequently', 'immediately',
+        'always', 'forever', 'constantly', 'eventually', 'someday'
+    ]
+    
+    if any(indicator in text_lower for indicator in temporal_indicators):
+        return "temporal"
     
     # First-order logic indicators
     fol_indicators = [
@@ -406,7 +427,19 @@ async def convert(request: ConversionRequest):
     
     print(f"Enhanced API: Detected logic type: {logic_type}")
     
-    if logic_type == "first_order":
+    if logic_type == "temporal":
+        result = temporal_converter.convert_text_to_temporal_logic(request.text)
+        result["logic_type"] = "temporal"
+        result["detected_logic_type"] = logic_type
+        
+        # Add notes for temporal logic
+        if request.include_cnf or request.include_dnf:
+            result["note"] = "CNF/DNF conversion for temporal logic is complex and not yet implemented"
+        
+        if request.include_truth_table:
+            result["note"] = "Truth tables are not directly applicable to temporal logic"
+    
+    elif logic_type == "first_order":
         result = fol_converter.convert_text_to_first_order_logic(request.text)
         result["logic_type"] = "first_order"
         result["detected_logic_type"] = logic_type
@@ -546,6 +579,66 @@ async def check_inference(request: InferenceRequest):
             print(f"Enhanced API: Problematic implication: {implication_str}")
             raise HTTPException(status_code=400, detail=f"Error processing inference: {e}. Implication: {implication_str}")
 
+# Knowledge Base Endpoints
+@app.post("/knowledge/add")
+async def add_knowledge(request: KnowledgeRequest):
+    """Add facts to persistent knowledge base"""
+    print(f"Enhanced API: Adding knowledge fact: '{request.fact}'")
+    try:
+        result = knowledge_base.add_fact(request.fact)
+        return result
+    except Exception as e:
+        print(f"Enhanced API: Error adding knowledge: {e}")
+        raise HTTPException(status_code=400, detail=f"Error adding knowledge: {e}")
+
+@app.post("/knowledge/query")
+async def query_knowledge(request: QueryRequest):
+    """Query the knowledge base with inference"""
+    print(f"Enhanced API: Querying knowledge: '{request.question}'")
+    try:
+        result = knowledge_base.query_knowledge(request.question)
+        return result
+    except Exception as e:
+        print(f"Enhanced API: Error querying knowledge: {e}")
+        raise HTTPException(status_code=400, detail=f"Error querying knowledge: {e}")
+
+@app.get("/knowledge/facts")
+async def get_all_facts():
+    """Get all facts in the knowledge base"""
+    try:
+        facts = knowledge_base.get_all_facts()
+        return {
+            "success": True,
+            "facts": facts,
+            "count": len(facts)
+        }
+    except Exception as e:
+        print(f"Enhanced API: Error getting facts: {e}")
+        raise HTTPException(status_code=400, detail=f"Error getting facts: {e}")
+
+@app.delete("/knowledge/clear")
+async def clear_knowledge():
+    """Clear all facts from the knowledge base"""
+    try:
+        result = knowledge_base.clear_knowledge()
+        return result
+    except Exception as e:
+        print(f"Enhanced API: Error clearing knowledge: {e}")
+        raise HTTPException(status_code=400, detail=f"Error clearing knowledge: {e}")
+
+# Temporal Logic Endpoints
+@app.post("/temporal/convert")
+async def convert_temporal_logic(request: ConversionRequest):
+    """Convert natural language to temporal logic"""
+    print(f"Enhanced API: Converting temporal text: '{request.text}'")
+    try:
+        result = temporal_converter.convert_text_to_temporal_logic(request.text)
+        result["logic_type"] = "temporal"
+        return result
+    except Exception as e:
+        print(f"Enhanced API: Error converting temporal logic: {e}")
+        raise HTTPException(status_code=400, detail=f"Error converting temporal logic: {e}")
+
 @app.get("/examples")
 async def get_examples():
     return {
@@ -562,6 +655,20 @@ async def get_examples():
             {"text": "Some birds cannot fly", "logic": "∃b((birds(b) ∧ ¬fly(b)))"},
             {"text": "Every student studies", "logic": "∀s((student(s) → studies(s)))"},
             {"text": "There exists a student who passed", "logic": "∃s((student(s) ∧ passed(s)))"}
+        ],
+        "temporal_examples": [
+            {"text": "It rained yesterday", "logic": "Past(rain)"},
+            {"text": "It will rain tomorrow", "logic": "Future(rain)"},
+            {"text": "If it rains, the ground will be wet afterwards", "logic": "(rain → Next(ground_wet))"},
+            {"text": "The sun always rises", "logic": "Always(sun_rise)"},
+            {"text": "Eventually it will stop raining", "logic": "Eventually(¬rain)"}
+        ],
+        "knowledge_base_examples": [
+            {"fact": "All birds have wings", "query": "Does Tweety have wings?"},
+            {"fact": "Penguins are birds", "query": "Is a penguin a bird?"},
+            {"fact": "Tweety is a penguin", "query": "Does Tweety have wings?"},
+            {"fact": "It rained yesterday", "query": "Did it rain in the past?"},
+            {"fact": "If it rains, the ground gets wet", "query": "What happens when it rains?"}
         ]
     }
 

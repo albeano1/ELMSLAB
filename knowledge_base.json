@@ -1,0 +1,20 @@
+[
+  {
+    "id": "fact_1_1757015284",
+    "text": "a penguin is a bird",
+    "formula": "bird(penguin)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T12:48:04.417944",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_2_1757015458",
+    "text": "It rained yesterday",
+    "formula": "Past(rain)",
+    "formula_type": "temporal",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T12:50:58.083284",
+    "source": "user_input"
+  }
+]

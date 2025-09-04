@@ -36,9 +36,10 @@ class FirstOrderLogicConverter:
     
     def extract_individual_constant(self, text: str) -> Constant:
         """Extract an individual constant from text (e.g., 'Socrates', 'John')"""
-        # Capitalize first letter for proper names
+        # Only capitalize if it's likely a proper name (starts with capital in original text)
         normalized = self.normalize_identifier(text)
-        if normalized and normalized[0].islower():
+        if normalized and text.strip() and text.strip()[0].isupper():
+            # Only capitalize if the original text started with a capital letter
             normalized = normalized.capitalize()
         return Constant(normalized)
     
