@@ -133,18 +133,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>🧠 Natural Language Logic Checker</h1>
+        <h1>🧠 Enhanced Logic Reasoning Engine</h1>
+        <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
+            Supports both Propositional Logic and First-Order Logic with Quantifiers
+        </p>
         
         <div class="section">
             <h2>Premises:</h2>
             <div id="premises-container">
                 <div class="premise-container">
                     <label>Premise 1:</label>
-                    <textarea id="premise1" placeholder="e.g., If it is raining then the ground is wet">If it is raining then the ground is wet</textarea>
+                    <textarea id="premise1" placeholder="e.g., All humans are mortal">All humans are mortal</textarea>
                 </div>
                 <div class="premise-container">
                     <label>Premise 2:</label>
-                    <textarea id="premise2" placeholder="e.g., It is raining">It is raining</textarea>
+                    <textarea id="premise2" placeholder="e.g., Socrates is human">Socrates is human</textarea>
                 </div>
             </div>
             <button class="add-premise" onclick="addPremise()">+ Add Premise</button>
@@ -152,10 +155,27 @@
         
         <div class="section">
             <h2>Conclusion:</h2>
-            <textarea id="conclusion" placeholder="e.g., The ground is wet">The ground is wet</textarea>
+            <textarea id="conclusion" placeholder="e.g., Socrates is mortal">Socrates is mortal</textarea>
+        </div>
+        
+        <div class="section">
+            <label for="logicType">Logic Type:</label>
+            <select id="logicType" style="width: 100%; padding: 10px; border: 2px solid #bdc3c7; border-radius: 5px; font-size: 14px;">
+                <option value="auto">Auto-detect (Recommended)</option>
+                <option value="propositional">Propositional Logic</option>
+                <option value="first_order">First-Order Logic</option>
+            </select>
         </div>
         
         <button onclick="checkInference()" id="checkButton">🔍 Check Validity</button>
+        
+        <div class="section">
+            <h3>Quick Examples:</h3>
+            <button class="add-premise" onclick="loadExample('socrates')" style="margin-right: 10px;">Socrates Example</button>
+            <button class="add-premise" onclick="loadExample('business')" style="margin-right: 10px;">Business Logic</button>
+            <button class="add-premise" onclick="loadExample('birds')" style="margin-right: 10px;">Birds Example</button>
+            <button class="add-premise" onclick="loadExample('propositional')">Propositional Logic</button>
+        </div>
         
         <div id="result"></div>
     </div>
@@ -210,14 +230,16 @@
             showResult('Checking inference...', 'loading');
             
             try {
-                const response = await fetch('http://localhost:8000/infer', {
+                const logicType = document.getElementById('logicType').value;
+                const response = await fetch('http://127.0.0.1:8000/infer', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         premises: premises,
-                        conclusion: conclusion
+                        conclusion: conclusion,
+                        logic_type: logicType
                     })
                 });
                 
@@ -227,16 +249,28 @@
                 
                 const result = await response.json();
                 
-                if (result.valid) {
+                if (result.valid === true) {
                     showResult(
-                        `✅ Valid inference! (${result.inference_type || 'Unknown type'})`,
+                        `✅ Valid inference! (${result.logic_type || 'Unknown type'})`,
                         'valid',
+                        result
+                    );
+                } else if (result.valid === false) {
+                    showResult(
+                        `❌ Invalid inference! (${result.logic_type || 'Unknown type'})`,
+                        'invalid',
+                        result
+                    );
+                } else if (result.valid === "unknown") {
+                    showResult(
+                        `🔍 First-order logic inference detected (requires advanced theorem proving)`,
+                        'loading',
                         result
                     );
                 } else {
                     showResult(
-                        `❌ Invalid inference!`,
-                        'invalid',
+                        `❓ Inference result: ${result.valid || 'Unknown'}`,
+                        'error',
                         result
                     );
                 }
@@ -256,18 +290,91 @@
             if (details) {
                 const detailsDiv = document.createElement('div');
                 detailsDiv.className = 'details';
-                detailsDiv.innerHTML = `
-                    <strong>Explanation:</strong> ${details.explanation || 'No explanation available'}<br>
-                    <strong>Implication:</strong> ${details.implication || 'N/A'}<br>
-                    <strong>Truth Table:</strong> ${details.truth_table_summary ? 
+                
+                let detailsHTML = `<strong>Logic Type:</strong> ${details.logic_type || 'Unknown'}<br>`;
+                detailsHTML += `<strong>Explanation:</strong> ${details.explanation || 'No explanation available'}<br>`;
+                
+                if (details.premises && details.premises.length > 0) {
+                    detailsHTML += `<strong>Parsed Premises:</strong><br>`;
+                    details.premises.forEach((premise, index) => {
+                        detailsHTML += `&nbsp;&nbsp;${index + 1}. ${premise}<br>`;
+                    });
+                }
+                
+                if (details.conclusion) {
+                    detailsHTML += `<strong>Parsed Conclusion:</strong> ${details.conclusion}<br>`;
+                }
+                
+                if (details.implication) {
+                    detailsHTML += `<strong>Implication:</strong> ${details.implication}<br>`;
+                }
+                
+                if (details.truth_table_summary) {
+                    detailsHTML += `<strong>Truth Table:</strong> ` +
                         `Tautology: ${details.truth_table_summary.is_tautology}, ` +
                         `Contradiction: ${details.truth_table_summary.is_contradiction}, ` +
-                        `Satisfiable: ${details.truth_table_summary.is_satisfiable}` : 'N/A'}<br>
-                    ${details.counterexample ? 
-                        `<strong>Counterexample:</strong> ${details.counterexample.description}` : ''}
-                `;
+                        `Satisfiable: ${details.truth_table_summary.is_satisfiable}<br>`;
+                }
+                
+                if (details.counterexample) {
+                    detailsHTML += `<strong>Counterexample:</strong> ${details.counterexample.description}<br>`;
+                }
+                
+                if (details.note) {
+                    detailsHTML += `<strong>Note:</strong> ${details.note}<br>`;
+                }
+                
+                detailsDiv.innerHTML = detailsHTML;
                 resultDiv.appendChild(detailsDiv);
             }
+        }
+        
+        function loadExample(type) {
+            // Clear existing premises
+            const container = document.getElementById('premises-container');
+            container.innerHTML = '';
+            premiseCount = 0;
+            
+            switch(type) {
+                case 'socrates':
+                    addPremiseWithText('All humans are mortal');
+                    addPremiseWithText('Socrates is human');
+                    document.getElementById('conclusion').value = 'Socrates is mortal';
+                    document.getElementById('logicType').value = 'auto';
+                    break;
+                case 'business':
+                    addPremiseWithText('If sales increase and costs decrease then profit rises');
+                    addPremiseWithText('Sales increase');
+                    addPremiseWithText('Costs decrease');
+                    document.getElementById('conclusion').value = 'Profit rises';
+                    document.getElementById('logicType').value = 'auto';
+                    break;
+                case 'birds':
+                    addPremiseWithText('All birds can fly');
+                    addPremiseWithText('Penguins are birds');
+                    document.getElementById('conclusion').value = 'Penguins can fly';
+                    document.getElementById('logicType').value = 'auto';
+                    break;
+                case 'propositional':
+                    addPremiseWithText('If it rains then the ground is wet');
+                    addPremiseWithText('It is raining');
+                    document.getElementById('conclusion').value = 'The ground is wet';
+                    document.getElementById('logicType').value = 'propositional';
+                    break;
+            }
+        }
+        
+        function addPremiseWithText(text) {
+            premiseCount++;
+            const container = document.getElementById('premises-container');
+            const newPremise = document.createElement('div');
+            newPremise.className = 'premise-container';
+            newPremise.innerHTML = `
+                <label>Premise ${premiseCount}:</label>
+                <textarea id="premise${premiseCount}" placeholder="e.g., Another premise">${text}</textarea>
+                <button class="remove-premise" onclick="removePremise(this)">Remove</button>
+            `;
+            container.appendChild(newPremise);
         }
         
         // Load example on page load
