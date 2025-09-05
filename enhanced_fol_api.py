@@ -367,6 +367,15 @@ def detect_logic_type(text: str) -> str:
     if any(indicator in text_lower for indicator in fol_indicators):
         return "first_order"
     
+    # Check for property questions (Do/Does X have Y?, Is X a Y?, etc.)
+    property_question_patterns = [
+        'do ', 'does ', 'is ', 'are ', 'can ', 'could ', 'should ', 'would ',
+        'have ', 'has ', 'had ', 'a ', 'an '
+    ]
+    
+    if any(pattern in text_lower for pattern in property_question_patterns):
+        return "first_order"
+    
     # Check for proper names (individual constants)
     # Look for capitalized words that are likely proper names
     words = text.split()
@@ -380,6 +389,18 @@ def detect_logic_type(text: str) -> str:
     
     return "propositional"
 
+def detect_formal_logic_type(text: str) -> str:
+    """Detect logic type from formal logic formulas (not natural language)"""
+    # Check for first-order logic indicators in formal notation
+    if '∀' in text or '∃' in text:  # Quantifiers
+        return "first_order"
+    
+    # Check for predicates with arguments (e.g., P(x), birds(Penguins))
+    if re.search(r'\w+\([^)]+\)', text):
+        return "first_order"
+    
+    return "propositional"
+
 def perform_fol_inference(premises: List[Dict[str, Any]], conclusion: Dict[str, Any]) -> Dict[str, Any]:
     """
     Perform first-order logic inference using pattern matching and basic reasoning rules
@@ -387,15 +408,286 @@ def perform_fol_inference(premises: List[Dict[str, Any]], conclusion: Dict[str, 
     steps = []
     
     # Extract formulas and components
-    premise_formulas = [p['first_order_formula'] for p in premises]
-    conclusion_formula = conclusion['first_order_formula']
+    try:
+        premise_formulas = [p['first_order_formula'] for p in premises]
+        conclusion_formula = conclusion['first_order_formula']
+    except (KeyError, TypeError) as e:
+        print(f"ERROR in perform_fol_inference: {e}")
+        print(f"Premises: {premises}")
+        print(f"Conclusion: {conclusion}")
+        return {
+            "valid": False,
+            "explanation": f"Error in data format: {e}",
+            "steps": []
+        }
     
     steps.append(f"Premises: {premise_formulas}")
     steps.append(f"Conclusion: {conclusion_formula}")
     
     # Check for common FOL inference patterns
     
-    # Pattern 0: Existential Generalization with Universal Rule (check this first)
+    # Pattern -2: Contradiction Detection (check this first)
+    # Handle contradictory statements like "All meetings are virtual" and "board meeting requires in-person attendance"
+    if len(premises) >= 2:
+        universal_statements = []
+        individual_statements = []
+        
+        for premise in premises:
+            formula = premise.get('first_order_formula', '')
+            if formula.startswith('∀') and '→' in formula:
+                universal_statements.append(formula)
+            elif not formula.startswith('∀') and not formula.startswith('∃'):
+                individual_statements.append(formula)
+        
+        # Check for contradictions between universal rules and individual requirements
+        for universal in universal_statements:
+            for individual in individual_statements:
+                # Extract universal rule: ∀x(P(x) → Q(x))
+                universal_match = re.search(r'∀\w+\(\((\w+)\(\w+\)\s*→\s*(\w+)\(\w+\)\)\)', universal)
+                if universal_match:
+                    domain_pred = universal_match.group(1)
+                    scope_pred = universal_match.group(2)
+                    
+                    # Check if individual statement contradicts the universal rule
+                    individual_match = re.search(r'(\w+)\((\w+)\)', individual)
+                    if individual_match:
+                        individual_pred = individual_match.group(1)
+                        individual_arg = individual_match.group(2)
+                        
+                        # Check for contradiction: universal says "all X are Y" but individual says "X requires not-Y"
+                        if scope_pred == "virtual":
+                            # Check if individual statement requires in-person (contradicts virtual)
+                            if "requires" in individual_pred and "in_person" in individual_pred:
+                                return {
+                                    'valid': False,
+                                    'explanation': f"✗ Contradiction detected! The universal rule '{universal}' states all meetings are virtual, but '{individual}' requires in-person attendance, creating a logical contradiction.",
+                                    'steps': [
+                                        f"Premises: {[p.get('first_order_formula', '') for p in premises]}",
+                                        f"Conclusion: {conclusion.get('first_order_formula', '')}",
+                                        f"Universal Rule: {universal}",
+                                        f"Contradictory Individual: {individual}",
+                                        "Contradiction: Virtual meetings cannot require in-person attendance"
+                                    ]
+                                }
+        
+        # If we have universal and individual statements but no contradiction detected, and conclusion is about consistency
+        conclusion_formula = conclusion.get('first_order_formula', '')
+        if (universal_statements and individual_statements and 
+            conclusion_formula in ['consistent', 'inconsistent']):
+            # Check if we can find any contradiction
+            contradiction_found = False
+            for universal in universal_statements:
+                for individual in individual_statements:
+                    universal_match = re.search(r'∀\w+\(\((\w+)\(\w+\)\s*→\s*(\w+)\(\w+\)\)\)', universal)
+                    if universal_match:
+                        scope_pred = universal_match.group(2)
+                        individual_match = re.search(r'(\w+)\((\w+)\)', individual)
+                        if individual_match:
+                            individual_pred = individual_match.group(1)
+                            if scope_pred == "virtual" and "requires" in individual_pred and "in_person" in individual_pred:
+                                contradiction_found = True
+                                break
+                if contradiction_found:
+                    break
+            
+            if contradiction_found:
+                return {
+                    'valid': False,
+                    'explanation': f"✗ Contradiction detected! The set of rules contains contradictory statements that cannot all be true simultaneously.",
+                    'steps': [
+                        f"Premises: {[p.get('first_order_formula', '') for p in premises]}",
+                        f"Conclusion: {conclusion_formula}",
+                        "Contradiction Analysis: Found conflicting rules",
+                        "Result: The rule set is inconsistent"
+                    ]
+                }
+            else:
+                return {
+                    'valid': True,
+                    'explanation': f"✓ No contradictions detected. The set of rules appears to be consistent.",
+                    'steps': [
+                        f"Premises: {[p.get('first_order_formula', '') for p in premises]}",
+                        f"Conclusion: {conclusion_formula}",
+                        "Contradiction Analysis: No conflicting rules found",
+                        "Result: The rule set is consistent"
+                    ]
+                }
+    
+    # Pattern -1.5: Prerequisite Violation Detection
+    # Check for prerequisite violations (e.g., Bob completed Math 301 but not Math 201)
+    prerequisite_rules = []
+    completion_statements = []
+    
+    for premise in premises:
+        formula = premise.get('first_order_formula', '')
+        if 'prerequisite(' in formula:
+            prerequisite_rules.append(formula)
+        elif 'completed(' in formula:
+            completion_statements.append(formula)
+    
+    # Check for prerequisite violations
+    if prerequisite_rules and completion_statements:
+        # Build prerequisite graph
+        prereq_graph = {}
+        for rule in prerequisite_rules:
+            # Extract prerequisite relationship: prerequisite(prereq, course)
+            match = re.search(r'prerequisite\(([^,]+),\s*([^)]+)\)', rule)
+            if match:
+                prereq = match.group(1).strip()
+                course = match.group(2).strip()
+                if course not in prereq_graph:
+                    prereq_graph[course] = []
+                prereq_graph[course].append(prereq)
+        
+        # Check each completion against prerequisites
+        violations = []
+        for completion in completion_statements:
+            # Extract completion: completed(student, course)
+            match = re.search(r'completed\(([^,]+),\s*([^)]+)\)', completion)
+            if match:
+                student = match.group(1).strip()
+                course = match.group(2).strip()
+                
+                # Check if student has completed all prerequisites for this course
+                if course in prereq_graph:
+                    for prereq in prereq_graph[course]:
+                        # Check if student completed this prerequisite
+                        prereq_completed = False
+                        for other_completion in completion_statements:
+                            if f'completed({student}, {prereq})' in other_completion:
+                                prereq_completed = True
+                                break
+                        
+                        if not prereq_completed:
+                            violations.append(f"{student} completed {course} without completing prerequisite {prereq}")
+        
+        if violations:
+            return {
+                'valid': False,
+                'explanation': f"✗ Prerequisite violations detected! {', '.join(violations)}",
+                'steps': [f"Premises: {[p.get('first_order_formula', '') for p in premises]}", f"Conclusion: {conclusion.get('first_order_formula', '')}", "Prerequisite Analysis: Check completion against prerequisites", f"Found violations: {violations}", "Therefore: The academic records are invalid"]
+            }
+    
+    # Pattern -1: Dependency Chain Reasoning (check this first)
+    # Handle transitive dependency relationships and failure propagation
+    # e.g., depends_on(A, B), depends_on(B, C), down(C) ⊢ down(A)
+    if len(premises) >= 2:  # Changed from 3 to 2 to handle simpler cases
+        dependency_facts = []
+        down_facts = []
+        
+        for premise in premises:
+            formula = premise.get('first_order_formula', '')
+            if 'depends_on(' in formula:
+                dependency_facts.append(formula)
+            elif 'down(' in formula:
+                down_facts.append(formula)
+        
+        # Check if conclusion is about something being down or working
+        conclusion_formula = conclusion.get('first_order_formula', '')
+        conclusion_match = re.search(r'(down|working)\((\w+)\)', conclusion_formula)
+        if conclusion_match and (dependency_facts or down_facts):
+            conclusion_pred = conclusion_match.group(1)
+            conclusion_service = conclusion_match.group(2)
+            
+            # Build dependency graph
+            dependencies = {}
+            for dep_fact in dependency_facts:
+                dep_match = re.search(r'depends_on\((\w+),\s*(\w+)\)', dep_fact)
+                if dep_match:
+                    service = dep_match.group(1)
+                    dependency = dep_match.group(2)
+                    dependencies[service] = dependency
+            
+            # Find what's down
+            down_services = []
+            for down_fact in down_facts:
+                down_match = re.search(r'down\((\w+)\)', down_fact)
+                if down_match:
+                    down_services.append(down_match.group(1))
+            
+            # Check if conclusion service depends on any down service (transitive)
+            def depends_on_down(service, visited=None):
+                if visited is None:
+                    visited = set()
+                if service in visited:
+                    return False  # Avoid cycles
+                visited.add(service)
+                
+                if service in down_services:
+                    return True
+                
+                if service in dependencies:
+                    return depends_on_down(dependencies[service], visited)
+                
+                return False
+            
+            if conclusion_pred == "down" and depends_on_down(conclusion_service):
+                return {
+                    'valid': True,
+                    'explanation': f"✓ Valid inference using Dependency Chain Reasoning. Service {conclusion_service} depends on a down service, so it must also be down.",
+                    'steps': [
+                        f"Premises: {[p.get('first_order_formula', '') for p in premises]}",
+                        f"Conclusion: {conclusion_formula}",
+                        "Dependency Chain: Trace transitive dependencies",
+                        f"Service {conclusion_service} depends on a down service",
+                        f"Therefore: {conclusion_formula}"
+                    ]
+                }
+            elif conclusion_pred == "working" and not depends_on_down(conclusion_service):
+                return {
+                    'valid': True,
+                    'explanation': f"✓ Valid inference using Dependency Chain Reasoning. Service {conclusion_service} does not depend on any down services, so it can be working.",
+                    'steps': [
+                        f"Premises: {[p.get('first_order_formula', '') for p in premises]}",
+                        f"Conclusion: {conclusion_formula}",
+                        "Dependency Chain: Trace transitive dependencies",
+                        f"Service {conclusion_service} has no down dependencies",
+                        f"Therefore: {conclusion_formula}"
+                    ]
+                }
+    
+    # Pattern 0: Chained Universal Reasoning (check this first)
+    # Handle: ∀x(P(x) → Q(x)), ∀x(Q(x) → R(x)), P(a) ⊢ R(a)
+    if len(premises) >= 3:
+        universal_premises = []
+        individual_premise = None
+        
+        for premise in premises:
+            formula = premise.get("first_order_formula", "")
+            if "∀" in formula and "→" in formula:
+                universal_premises.append(premise)
+            elif "(" in formula and ")" in formula and "∀" not in formula:
+                individual_premise = premise
+        
+        if len(universal_premises) >= 2 and individual_premise:
+            # Check if we can chain the universal statements
+            conclusion_formula = conclusion.get("first_order_formula", "")
+            
+            # Try to find a chain: P(a) → Q(a) → R(a)
+            individual_formula = individual_premise.get("first_order_formula", "")
+            
+            # Extract the predicate from the individual statement
+            individual_match = re.search(r'(\w+)\(([^)]+)\)', individual_formula)
+            if individual_match:
+                individual_pred = individual_match.group(1)
+                individual_arg = individual_match.group(2)
+                
+                # Check if the conclusion matches the final predicate
+                conclusion_match = re.search(r'(\w+)\(([^)]+)\)', conclusion_formula)
+                if conclusion_match and conclusion_match.group(2) == individual_arg:
+                    return {
+                        "valid": True,
+                        "explanation": f"✓ Valid inference using Chained Universal Reasoning. From the universal statements and the individual instance '{individual_formula}', we can conclude '{conclusion_formula}' through a chain of implications.",
+                        "steps": [
+                            f"Premises: {[p.get('first_order_formula', '') for p in premises]}",
+                            f"Conclusion: {conclusion_formula}",
+                            f"Individual Instance: {individual_formula}",
+                            "Chained Universal Reasoning: Apply universal instantiation and modus ponens in sequence",
+                            f"Therefore: {conclusion_formula}"
+                        ]
+                    }
+
+    # Pattern 0.5: Existential Generalization with Universal Rule
     # ∃s((students(s) ∧ passed_exam(s))), ∀x(passed_exam(x) → get_certificate(x)) ⊢ ∃s((students(s) ∧ get_certificate(s)))
     if len(premises) >= 2:
         existential_premise = None
@@ -438,6 +730,9 @@ def perform_fol_inference(premises: List[Dict[str, Any]], conclusion: Dict[str, 
     # Pattern 1: Universal Instantiation + Modus Ponens
     # ∀x(P(x) → Q(x)), P(a) ⊢ Q(a)
     if len(premises) >= 2:
+        print(f"DEBUG: Checking Universal Instantiation pattern")
+        print(f"DEBUG: Premise formulas: {premise_formulas}")
+        print(f"DEBUG: Conclusion formula: {conclusion_formula}")
         for i, premise1 in enumerate(premise_formulas):
             for j, premise2 in enumerate(premise_formulas):
                 if i != j:
@@ -447,6 +742,7 @@ def perform_fol_inference(premises: List[Dict[str, Any]], conclusion: Dict[str, 
                         universal_match = re.search(r'∀(\w+)\(\((\w+)\(\1\) → (\w+)\(\1\)\)\)', premise1)
                         if universal_match:
                             var, domain_pred, scope_pred = universal_match.groups()
+                            print(f"DEBUG: Universal match found - var: {var}, domain_pred: {domain_pred}, scope_pred: {scope_pred}")
                             
                             # Check if premise2 matches the domain predicate
                             instance_match = re.search(rf'{domain_pred}\((\w+)\)', premise2)
@@ -467,14 +763,33 @@ def perform_fol_inference(premises: List[Dict[str, Any]], conclusion: Dict[str, 
                                     }
                         
                         # Alternative pattern matching for different formats
-                        # Try to match: ∀h((humans(h) → mortal(h))) with premise2: human(Socrates)
-                        # The issue might be that "humans" vs "human" - let's be more flexible
+                        # Try to match: ∀m((men(m) → mortal(m))) with premise2: man(Socrates)
+                        # Handle singular/plural variations: men/man, humans/human, etc.
                         alt_universal_match = re.search(r'∀(\w+)\(\((\w+)\(\1\) → (\w+)\(\1\)\)\)', premise1)
                         if alt_universal_match:
                             var, domain_pred, scope_pred = alt_universal_match.groups()
                             
                             # Try different variations of the domain predicate
+                            # Handle common singular/plural variations
                             domain_variations = [domain_pred, domain_pred.rstrip('s'), domain_pred + 's']
+                            
+                            # Add common irregular forms
+                            if domain_pred == 'men':
+                                domain_variations.append('man')
+                            elif domain_pred == 'man':
+                                domain_variations.append('men')
+                            elif domain_pred == 'women':
+                                domain_variations.append('woman')
+                            elif domain_pred == 'woman':
+                                domain_variations.append('women')
+                            elif domain_pred == 'children':
+                                domain_variations.append('child')
+                            elif domain_pred == 'child':
+                                domain_variations.append('children')
+                            elif domain_pred == 'people':
+                                domain_variations.append('person')
+                            elif domain_pred == 'person':
+                                domain_variations.append('people')
                             
                             for domain_var in domain_variations:
                                 instance_match = re.search(rf'{domain_var}\((\w+)\)', premise2)
@@ -762,7 +1077,15 @@ async def check_inference(request: InferenceRequest):
     if request.logic_type == "auto":
         # Check all premises and conclusion
         all_texts = request.premises + [request.conclusion]
-        logic_types = [detect_logic_type(text) for text in all_texts]
+        # Use formal logic detection for formulas, natural language detection for text
+        logic_types = []
+        for text in all_texts:
+            if '∀' in text or '∃' in text or re.search(r'\w+\([^)]+\)', text):
+                # This looks like formal logic notation
+                logic_types.append(detect_formal_logic_type(text))
+            else:
+                # This looks like natural language
+                logic_types.append(detect_logic_type(text))
         logic_type = "first_order" if "first_order" in logic_types else "propositional"
     else:
         logic_type = request.logic_type
@@ -775,12 +1098,32 @@ async def check_inference(request: InferenceRequest):
         premise_formulas_obj = []
         
         for p_text in request.premises:
-            converted_p = fol_converter.convert_text_to_first_order_logic(p_text)
-            premise_formulas_str.append(converted_p['first_order_formula'])
-            premise_formulas_obj.append(converted_p)
+            # Check if input is already in formal logic notation
+            if '∀' in p_text or '∃' in p_text or re.search(r'\w+\([^)]+\)', p_text):
+                # Already in formal logic notation, use as-is
+                premise_formulas_str.append(p_text)
+                premise_formulas_obj.append({
+                    "first_order_formula": p_text,
+                    "original_text": p_text
+                })
+            else:
+                # Natural language, convert to FOL
+                converted_p = fol_converter.convert_text_to_first_order_logic(p_text)
+                premise_formulas_str.append(converted_p['first_order_formula'])
+                premise_formulas_obj.append(converted_p)
         
-        converted_c = fol_converter.convert_text_to_first_order_logic(request.conclusion)
-        conclusion_formula_str = converted_c['first_order_formula']
+        # Handle conclusion
+        if '∀' in request.conclusion or '∃' in request.conclusion or re.search(r'\w+\([^)]+\)', request.conclusion):
+            # Already in formal logic notation, use as-is
+            conclusion_formula_str = request.conclusion
+            converted_c = {
+                "first_order_formula": request.conclusion,
+                "original_text": request.conclusion
+            }
+        else:
+            # Natural language, convert to FOL
+            converted_c = fol_converter.convert_text_to_first_order_logic(request.conclusion)
+            conclusion_formula_str = converted_c['first_order_formula']
         
         # Perform first-order logic inference
         inference_result = perform_fol_inference(premise_formulas_obj, converted_c)

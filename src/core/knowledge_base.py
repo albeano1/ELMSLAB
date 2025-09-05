@@ -7,6 +7,7 @@ with inference capabilities for reasoning about stored knowledge.
 
 import json
 import os
+import re
 from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass, asdict
 from datetime import datetime
@@ -81,10 +82,22 @@ class KnowledgeBase:
     
     def query_knowledge(self, question: str) -> Dict[str, Any]:
         """Query the knowledge base with inference."""
+        print(f"=== KNOWLEDGE BASE QUERY START ===")
         print(f"Knowledge Base: Querying: '{question}'")
         
-        # Determine logic type of the question
-        logic_type = self._detect_logic_type(question)
+        # Determine logic type of the question using the main API's detection
+        try:
+            import sys
+            import os
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            if project_root not in sys.path:
+                sys.path.append(project_root)
+            
+            from enhanced_fol_api import detect_logic_type
+            logic_type = detect_logic_type(question)
+        except:
+            # Fallback to local detection
+            logic_type = self._detect_logic_type(question)
         
         # Find relevant facts
         relevant_facts = self._find_relevant_facts(question)
@@ -112,6 +125,7 @@ class KnowledgeBase:
     def _detect_logic_type(self, text: str) -> str:
         """Detect the logic type of a text."""
         text_lower = text.lower()
+        print(f"DEBUG: Detecting logic type for: '{text}'")
         # Check for temporal indicators
         temporal_indicators = [
             'yesterday', 'tomorrow', 'last', 'next', 'ago', 'will', 'shall',
@@ -146,7 +160,9 @@ class KnowledgeBase:
         ]
         
         if any(pattern in text_lower for pattern in property_question_patterns):
+            print(f"DEBUG: Detected first_order logic (property question)")
             return "first_order"
+        print(f"DEBUG: Detected propositional logic (default)")
         return "propositional"
     
     def _simple_propositional_convert(self, text: str) -> str:
@@ -198,16 +214,33 @@ class KnowledgeBase:
             question_words = set(self._normalize_verbs(self._clean_words(question_lower.split())))
             fact_words = set(self._normalize_verbs(self._clean_words(fact_lower.split())))
             
-            # Remove common words
-            common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'must', 'all', 'every', 'each', 'some', 'what', 'which', 'how', 'why', 'when', 'where', 'who'}
+            # Remove only truly common words, keep important logical words
+            common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'must', 'what', 'which', 'how', 'why', 'when', 'where', 'who'}
             question_words -= common_words
             fact_words -= common_words
             
             # Calculate overlap
             overlap = len(question_words.intersection(fact_words))
             
+            # Check for reasoning chain connections
+            # If question mentions a role/category, include facts about that role
+            role_connections = 0
+            if any(word in question_lower for word in ['manager', 'employee', 'contractor', 'bird', 'penguin', 'man', 'human']):
+                if any(word in fact_lower for word in ['manager', 'employee', 'contractor', 'bird', 'penguin', 'man', 'human']):
+                    role_connections += 1
+            
+            # Include universal statements that could be part of reasoning chains
+            universal_implication = 0
+            if any(word in fact_lower for word in ['all', 'every', 'any']) and '→' in fact.formula:
+                universal_implication += 1
+            
+            # NEW: For consistency questions, include all facts
+            consistency_question = 0
+            if any(word in question_lower for word in ['consistent', 'contradiction', 'conflict', 'rules', 'set']):
+                consistency_question += 1
+            
             # Also check for partial word matches and synonyms
-            if overlap > 0:
+            if overlap > 0 or role_connections > 0 or universal_implication > 0 or consistency_question > 0:
                 relevant_facts.append(fact)
             else:
                 # Check for partial matches (e.g., "bird" matches "birds")
@@ -224,15 +257,170 @@ class KnowledgeBase:
     def _perform_inference(self, question: str, facts: List[KnowledgeFact], logic_type: str) -> Dict[str, Any]:
         """Perform inference on the question using relevant facts."""
         
+        print(f"DEBUG: Logic type detected: {logic_type}")
+        print(f"DEBUG: Question: {question}")
+        print(f"DEBUG: Number of facts: {len(facts)}")
+        
         if logic_type == "first_order":
+            print(f"DEBUG: Using first-order inference")
             return self._first_order_inference(question, facts)
         elif logic_type == "temporal":
+            print(f"DEBUG: Using temporal inference")
             return self._temporal_inference(question, facts)
         else:
+            print(f"DEBUG: Using propositional inference")
             return self._propositional_inference(question, facts)
     
     def _first_order_inference(self, question: str, facts: List[KnowledgeFact]) -> Dict[str, Any]:
-        """Perform first-order logic inference."""
+        """Perform first-order logic inference using the enhanced FOL inference engine."""
+        try:
+            # Import the FOL inference function from enhanced_fol_api
+            import sys
+            import os
+            # Add the project root to the path
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            if project_root not in sys.path:
+                sys.path.append(project_root)
+            
+            # Import the perform_fol_inference function
+            from enhanced_fol_api import perform_fol_inference
+            
+            # Convert facts to premises in the format expected by perform_fol_inference
+            premises = []
+            for fact in facts:
+                if fact.formula_type == "first_order":
+                    premises.append({
+                        "first_order_formula": fact.formula,
+                        "original_text": fact.text
+                    })
+                else:
+                    # For non-FOL facts, convert them using the FOL converter
+                    try:
+                        fol_result = self.fol_converter.convert_text_to_first_order_logic(fact.text)
+                        premises.append({
+                            "first_order_formula": fol_result.get("first_order_formula", fact.text),
+                            "original_text": fact.text
+                        })
+                    except:
+                        premises.append({
+                            "first_order_formula": fact.text,
+                            "original_text": fact.text
+                        })
+            
+            # Convert question to conclusion format
+            # Handle different question types
+            question_lower = question.lower()
+            conclusion_text = question
+            
+            # Convert question patterns to statements
+            if question_lower.startswith("is ") and question_lower.endswith("?"):
+                # "Is Socrates mortal?" -> "Socrates is mortal"
+                # "Is Service C down?" -> "Service C is down"
+                # "Is Service C working?" -> "Service C is working"
+                subject_predicate = question[3:-1].strip()  # "Service C down" or "Socrates mortal"
+                if " down" in subject_predicate:
+                    # "Service C down" -> "Service C is down"
+                    conclusion_text = subject_predicate.replace(" down", " is down")
+                elif " working" in subject_predicate:
+                    # "Service C working" -> "Service C is working"
+                    conclusion_text = subject_predicate.replace(" working", " is working")
+                else:
+                    # "Socrates mortal" -> "Socrates is mortal"
+                    conclusion_text = subject_predicate + "."
+            elif question_lower.startswith("are ") and question_lower.endswith("?"):
+                # "Are penguins birds?" -> "Penguins are birds"
+                # "Are the rules consistent?" -> "The rules are consistent"
+                conclusion_text = question[4:-1] + "."
+            elif question_lower.startswith("do ") and question_lower.endswith("?"):
+                # "Do penguins have wings?" -> "have_wings(Penguins)" format  
+                # Extract subject and predicate
+                text = question[3:-1].strip()  # "penguins have wings"
+                words = text.split()
+                if len(words) >= 3 and words[1] == "have":
+                    subject = words[0].capitalize()
+                    object_noun = " ".join(words[2:])
+                    conclusion_text = f"have_{object_noun.replace(' ', '_')}({subject})"
+                else:
+                    conclusion_text = text
+            elif question_lower.startswith("does ") and question_lower.endswith("?"):
+                # "Does Sarah need a badge?" -> "need_badges(Sarah)" format
+                text = question[5:-1].strip()  # "Sarah need a badge"
+                words = text.split()
+                if len(words) >= 3 and words[1] == "need":
+                    subject = words[0].capitalize()
+                    object_noun = " ".join(words[2:])
+                    conclusion_text = f"need_{object_noun.replace(' ', '_')}({subject})"
+                else:
+                    conclusion_text = text
+            elif question_lower.startswith("can ") and question_lower.endswith("?"):
+                # "Can all birds fly?" -> "All birds can fly"
+                conclusion_text = question[4:-1] + "."
+            
+            # Fix missing verbs in conclusion text
+            if " is " not in conclusion_text and " are " not in conclusion_text and " has " not in conclusion_text and " have " not in conclusion_text:
+                # If no verb is present, add "is" (assume singular)
+                words = conclusion_text.split()
+                if len(words) >= 2:
+                    # Insert "is" between first and second word
+                    conclusion_text = words[0] + " is " + " ".join(words[1:])
+            
+            
+            # Convert conclusion to FOL format
+            try:
+                print(f"DEBUG: Converting conclusion text: '{conclusion_text}'")
+                
+                # Check if conclusion is already in FOL format (e.g., "have_wings(Penguins)")
+                if re.search(r'\w+\([^)]+\)', conclusion_text):
+                    # Already in FOL format, use as-is
+                    conclusion = {
+                        "first_order_formula": conclusion_text,
+                        "original_text": conclusion_text
+                    }
+                    print(f"DEBUG: Using pre-formatted FOL: {conclusion_text}")
+                else:
+                    # Convert natural language to FOL
+                    fol_result = self.fol_converter.convert_text_to_first_order_logic(conclusion_text)
+                    print(f"DEBUG: FOL result: {fol_result}")
+                    conclusion = {
+                        "first_order_formula": fol_result.get("first_order_formula", conclusion_text),
+                        "original_text": conclusion_text
+                    }
+            except Exception as e:
+                print(f"DEBUG: Error converting conclusion: {e}")
+                conclusion = {
+                    "first_order_formula": conclusion_text,
+                    "original_text": conclusion_text
+                }
+            
+            # Debug logging
+            print(f"DEBUG KB: Premises: {premises}")
+            print(f"DEBUG KB: Conclusion: {conclusion}")
+            
+            # Perform FOL inference
+            result = perform_fol_inference(premises, conclusion)
+            
+            print(f"DEBUG KB: Result: {result}")
+            
+            if result["valid"]:
+                return {
+                    "answer": "Yes",
+                    "reasoning": result["explanation"],
+                    "confidence": 0.9
+                }
+            else:
+                return {
+                    "answer": "No",
+                    "reasoning": result["explanation"],
+                    "confidence": 0.8
+                }
+                
+        except Exception as e:
+            print(f"Error in FOL inference: {e}")
+            # Fallback to simple pattern matching
+            return self._simple_pattern_inference(question, facts)
+    
+    def _simple_pattern_inference(self, question: str, facts: List[KnowledgeFact]) -> Dict[str, Any]:
+        """Fallback simple pattern matching inference."""
         question_lower = question.lower()
         
         # Check for "Do/Does X have Y?" pattern

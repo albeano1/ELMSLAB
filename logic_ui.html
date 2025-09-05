@@ -623,11 +623,21 @@
                     </div>
                     
                     <div class="section">
-                        <h3>Quick Fact Examples:</h3>
+                        <h3>🧪 Knowledge Base Test Scenarios:</h3>
                         <div class="example-buttons">
-                            <button class="example-btn" onclick="loadFactExample('birds')">Birds & Wings</button>
-                            <button class="example-btn" onclick="loadFactExample('animals')">Animals</button>
-                            <button class="example-btn" onclick="loadFactExample('temporal')">Temporal Facts</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('socrates')">1. Socrates Classic</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('bird_problem')">2. Bird Problem</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('company_access')">3. Company Access</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('software_deps')">4. Software Dependencies</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('contradiction')">5. Contradiction Detection</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('academic_prereq')">6. Academic Prerequisites</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('time_based')">7. Time-Based Rules</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('ecommerce')">8. E-Commerce Rules</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('legal_compliance')">9. Legal Compliance</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('medical_diagnosis')">10. Medical Diagnosis</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('murderer_puzzle')">11. Murderer Puzzle</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('circular_dependency')">12. Circular Dependency</button>
+                            <button class="example-btn" onclick="loadKnowledgeScenario('existential_queries')">13. Existential Queries</button>
                         </div>
                     </div>
                 </div>
@@ -641,11 +651,21 @@
                     </div>
                     
                     <div class="section">
-                        <h3>Quick Query Examples:</h3>
+                        <h3>🎯 Test Queries:</h3>
                         <div class="example-buttons">
-                            <button class="example-btn" onclick="loadQueryExample('wings')">Wings Query</button>
-                            <button class="example-btn" onclick="loadQueryExample('bird')">Bird Query</button>
-                            <button class="example-btn" onclick="loadQueryExample('temporal')">Temporal Query</button>
+                            <button class="example-btn" onclick="loadQueryScenario('socrates')">Is Socrates mortal?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('penguins_wings')">Do penguins have wings?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('sarah_badge')">Does Sarah need a badge?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('service_failure')">Is Service A working?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('consistent_rules')">Are the rules consistent?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('alice_graduate')">Can Alice graduate?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('john_overtime')">Does John get overtime pay?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('customer_shipping')">Does Customer C get free shipping?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('dpo_required')">Do we need a Data Protection Officer?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('patient_flu')">Might Patient P have flu?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('murderer')">Who is the murderer?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('circular_job')">Can someone get a job?</button>
+                            <button class="example-btn" onclick="loadQueryScenario('some_birds_swim')">Can some birds swim?</button>
                         </div>
                     </div>
                 </div>
@@ -1478,32 +1498,207 @@ It is now 1pm</textarea>
             }
         }
         
-        function loadFactExample(type) {
+        // Comprehensive Knowledge Base Test Scenarios
+        async function loadKnowledgeScenario(type) {
+            // Note: This adds facts to existing knowledge base
+            // Use "Clear Knowledge Base" button if you want to start fresh
+            
             const factInput = document.getElementById('factInput');
-            switch(type) {
-                case 'birds':
-                    factInput.value = 'All birds have wings';
-                    break;
-                case 'animals':
-                    factInput.value = 'All cats are animals';
-                    break;
-                case 'temporal':
-                    factInput.value = 'It rained yesterday';
-                    break;
+            const queryInput = document.getElementById('queryInput');
+            
+            // Define facts for each scenario
+            const scenarios = {
+                'socrates': {
+                    facts: [
+                        'All men are mortal',
+                        'Socrates is a man'
+                    ],
+                    query: 'Is Socrates mortal?'
+                },
+                'bird_problem': {
+                    facts: [
+                        'All birds have wings',
+                        'All birds lay eggs',
+                        'Penguins are birds',
+                        'Penguins cannot fly'
+                    ],
+                    query: 'Do penguins have wings?'
+                },
+                'company_access': {
+                    facts: [
+                        'All employees need badges to enter the building',
+                        'Contractors are not employees',
+                        'All managers are employees',
+                        'Sarah is a manager',
+                        'Tom is a contractor'
+                    ],
+                    query: 'Does Sarah need a badge?'
+                },
+                'software_deps': {
+                    facts: [
+                        'Service A depends on Service B',
+                        'Service B depends on Service C',
+                        'Service C depends on Database D',
+                        'If a service depends on something that is down, the service fails',
+                        'Database D is down'
+                    ],
+                    query: 'Is Service A working?'
+                },
+                'contradiction': {
+                    facts: [
+                        'All meetings are virtual',
+                        'The board meeting requires in-person attendance',
+                        'The board meeting is a meeting'
+                    ],
+                    query: 'Are the rules consistent?'
+                },
+                'academic_prereq': {
+                    facts: [
+                        'Students must complete Math 101 before Math 201',
+                        'Students must complete Math 201 before Math 301',
+                        'Students must complete Math 301 before graduating',
+                        'Alice completed Math 101',
+                        'Alice completed Math 201',
+                        'Bob completed Math 301 but not Math 201'
+                    ],
+                    query: 'Can Alice graduate?'
+                },
+                'time_based': {
+                    facts: [
+                        'Employees who work more than 40 hours get overtime pay',
+                        'Managers do not get overtime pay',
+                        'John is an employee',
+                        'John is a manager',
+                        'John worked 50 hours this week'
+                    ],
+                    query: 'Does John get overtime pay?'
+                },
+                'ecommerce': {
+                    facts: [
+                        'Free shipping on orders over $50',
+                        'Premium members get free shipping on all orders',
+                        'Sales items cannot be returned',
+                        'Electronics have a 30-day return window',
+                        'Item X is electronics',
+                        'Item X is on sale',
+                        'Customer C is a premium member',
+                        'Customer C\'s order is $30'
+                    ],
+                    query: 'Does Customer C get free shipping?'
+                },
+                'legal_compliance': {
+                    facts: [
+                        'Companies processing EU data must be GDPR compliant',
+                        'GDPR compliant companies must have a Data Protection Officer',
+                        'Companies with under 10 employees are exempt from DPO requirement',
+                        'Our company processes EU data',
+                        'Our company has 8 employees'
+                    ],
+                    query: 'Do we need a Data Protection Officer?'
+                },
+                'medical_diagnosis': {
+                    facts: [
+                        'Patients with fever and cough might have flu',
+                        'Patients with flu should rest',
+                        'Patients with severe symptoms should see a doctor immediately',
+                        'Fever over 103°F is a severe symptom',
+                        'Patient P has fever of 104°F',
+                        'Patient P has cough'
+                    ],
+                    query: 'Might Patient P have flu?'
+                },
+                'murderer_puzzle': {
+                    facts: [
+                        'Someone in the mansion is the murderer',
+                        'The murderer was in the library at midnight',
+                        'Colonel Mustard was in the kitchen at midnight',
+                        'Miss Scarlet was in the library at midnight',
+                        'Professor Plum was in the study at midnight',
+                        'Only one person can be in a room at a time',
+                        'Only these three people were in the mansion'
+                    ],
+                    query: 'Who is the murderer?'
+                },
+                'circular_dependency': {
+                    facts: [
+                        'To get a job you need experience',
+                        'To get experience you need a job'
+                    ],
+                    query: 'Can someone with neither get a job?'
+                },
+                'existential_queries': {
+                    facts: [
+                        'Some birds can swim',
+                        'All penguins are birds',
+                        'All penguins can swim',
+                        'Robins are birds'
+                    ],
+                    query: 'Can some birds swim?'
+                }
+            };
+            
+            const scenario = scenarios[type];
+            if (scenario) {
+                // Set the query
+                queryInput.value = scenario.query;
+                
+                // Add all facts to the knowledge base
+                for (let i = 0; i < scenario.facts.length; i++) {
+                    factInput.value = scenario.facts[i];
+                    await addFact();
+                    // Small delay between adding facts
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                // Show success message
+                showResult(`✅ Added ${scenario.facts.length} facts for ${type.replace('_', ' ')} scenario. Query: "${scenario.query}" (Use Clear button to start fresh)`, 'success');
+                
+                // Refresh the facts display
+                loadAllFacts();
             }
         }
         
-        function loadQueryExample(type) {
+        function loadQueryScenario(type) {
             const queryInput = document.getElementById('queryInput');
             switch(type) {
-                case 'wings':
-                    queryInput.value = 'Does Tweety have wings?';
+                case 'socrates':
+                    queryInput.value = 'Is Socrates mortal?';
                     break;
-                case 'bird':
-                    queryInput.value = 'Is a penguin a bird?';
+                case 'penguins_wings':
+                    queryInput.value = 'Do penguins have wings?';
                     break;
-                case 'temporal':
-                    queryInput.value = 'Did it rain in the past?';
+                case 'sarah_badge':
+                    queryInput.value = 'Does Sarah need a badge?';
+                    break;
+                case 'service_failure':
+                    queryInput.value = 'Is Service A working?';
+                    break;
+                case 'consistent_rules':
+                    queryInput.value = 'Are the rules consistent?';
+                    break;
+                case 'alice_graduate':
+                    queryInput.value = 'Can Alice graduate?';
+                    break;
+                case 'john_overtime':
+                    queryInput.value = 'Does John get overtime pay?';
+                    break;
+                case 'customer_shipping':
+                    queryInput.value = 'Does Customer C get free shipping?';
+                    break;
+                case 'dpo_required':
+                    queryInput.value = 'Do we need a Data Protection Officer?';
+                    break;
+                case 'patient_flu':
+                    queryInput.value = 'Might Patient P have flu?';
+                    break;
+                case 'murderer':
+                    queryInput.value = 'Who is the murderer?';
+                    break;
+                case 'circular_job':
+                    queryInput.value = 'Can someone with neither get a job?';
+                    break;
+                case 'some_birds_swim':
+                    queryInput.value = 'Can some birds swim?';
                     break;
             }
         }

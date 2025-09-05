@@ -1,29 +1,83 @@
 [
   {
-    "id": "fact_1_1757030822",
-    "text": "All birds have wings",
-    "formula": "\u2200b((birds(b) \u2192 wings(b)))",
+    "id": "fact_1_1757037741",
+    "text": "All meetings are virtual",
+    "formula": "\u2200m((meetings(m) \u2192 virtual(m)))",
     "formula_type": "first_order",
     "confidence": 0.8,
-    "timestamp": "2025-09-04T17:07:02.969509",
+    "timestamp": "2025-09-04T19:02:21.477959",
     "source": "user_input"
   },
   {
-    "id": "fact_2_1757030839",
-    "text": "It rained yesterday",
-    "formula": "\u25cf(rain_to_yesterday(it))",
-    "formula_type": "temporal",
+    "id": "fact_2_1757037741",
+    "text": "The board meeting requires in-person attendance",
+    "formula": "the_board_meeting_requires_in-person_attendance",
+    "formula_type": "propositional",
     "confidence": 0.8,
-    "timestamp": "2025-09-04T17:07:19.700656",
+    "timestamp": "2025-09-04T19:02:21.592411",
     "source": "user_input"
   },
   {
-    "id": "fact_3_1757030850",
-    "text": "All cats are animals",
-    "formula": "\u2200c((cats(c) \u2192 animals(c)))",
+    "id": "fact_3_1757037741",
+    "text": "The board meeting is a meeting",
+    "formula": "meeting(meeting)",
     "formula_type": "first_order",
     "confidence": 0.8,
-    "timestamp": "2025-09-04T17:07:30.900491",
+    "timestamp": "2025-09-04T19:02:21.719281",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_4_1757037755",
+    "text": "Students must complete Math 101 before Math 201",
+    "formula": "prerequisite(Math_101, Math_201)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T19:02:35.936794",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_5_1757037756",
+    "text": "Students must complete Math 201 before Math 301",
+    "formula": "prerequisite(Math_201, Math_301)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T19:02:36.051020",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_6_1757037756",
+    "text": "Students must complete Math 301 before graduating",
+    "formula": "prerequisite(Math_301, graduating)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T19:02:36.165633",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_7_1757037756",
+    "text": "Alice completed Math 101",
+    "formula": "completed(Alice, Math_101)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T19:02:36.281039",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_8_1757037756",
+    "text": "Alice completed Math 201",
+    "formula": "completed(Alice, Math_201)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T19:02:36.396444",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_9_1757037756",
+    "text": "Bob completed Math 301 but not Math 201",
+    "formula": "completed(Bob, Math_301_but_not_math_201)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T19:02:36.509974",
     "source": "user_input"
   }
 ]

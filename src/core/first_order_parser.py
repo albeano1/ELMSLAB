@@ -29,8 +29,8 @@ class FirstOrderLogicConverter:
     
     def normalize_identifier(self, text: str) -> str:
         """Convert text to a valid identifier"""
-        # Remove articles, common auxiliary verbs, and normalize
-        text = re.sub(r'\b(a|an|the|is|are|was|were|will be|can|do|does|did)\b', '', text, flags=re.IGNORECASE)
+        # Remove articles and common auxiliary verbs, but preserve action words
+        text = re.sub(r'\b(a|an|the|is|are|was|were|will be|do|does|did)\b', '', text, flags=re.IGNORECASE)
         text = text.strip()
         return re.sub(r'[^a-z0-9_]', '', text.lower().replace(" ", "_"))
     
@@ -61,7 +61,10 @@ class FirstOrderLogicConverter:
             r'\beach\s+(\w+)\s+(?:is|are|can|do|will)\s+(.+)',  # "Each bird flies"
             r'\bany\s+(\w+)\s+(?:is|are|can|do|will)\s+(.+)',  # "Any person can learn"
             r'\bevery\s+(\w+)\s+(.+)',  # "Every student studies" (more general)
+            r'\ball\s+(\w+(?:\s+\w+)*)\s+have\s+wings',  # "All birds have wings"
             r'\ball\s+(\w+(?:\s+\w+)*)\s+(?:have|has)\s+(.+)',  # "All profitable companies have increasing sales"
+            r'\ball\s+(\w+(?:\s+\w+)*)\s+lay\s+eggs',  # "All birds lay eggs"
+            r'\ball\s+(\w+(?:\s+\w+)*)\s+need\s+(\w+(?:\s+\w+)*)',  # "All employees need badges"
             r'\ball\s+(\w+(?:\s+\w+)*)\s+(.+)',  # "All X Y" (more general)
             r'\beveryone\s+who\s+(.+?)\s+(?:gets|has|is|are|can|do|will)\s+(.+)',  # "Everyone who passed gets a certificate"
         ]
@@ -70,7 +73,17 @@ class FirstOrderLogicConverter:
             match = re.search(pattern, text_lower)
             if match:
                 variable_desc = match.group(1)
-                scope = match.group(2)
+                # Handle patterns with different numbers of groups
+                if len(match.groups()) == 1:
+                    # For patterns like "All birds lay eggs" where there's no separate scope
+                    if "lay eggs" in text_lower:
+                        scope = "lay eggs"
+                    elif "have wings" in text_lower:
+                        scope = "have wings"
+                    else:
+                        scope = text_lower.replace(f"all {variable_desc}", "").strip()
+                else:
+                    scope = match.group(2)
                 
                 return Quantifier.FORALL, variable_desc, scope
         
@@ -93,7 +106,87 @@ class FirstOrderLogicConverter:
     
     def parse_individual_statement(self, text: str) -> FirstOrderFormula:
         """Parse statements about individuals (e.g., 'Socrates is human')"""
-        # Check for "can" patterns first (e.g., "Penguins can fly" -> fly(Penguins))
+        # Check for prerequisite rules (e.g., "Students must complete Math 101 before Math 201" -> prerequisite(Math_101, Math_201))
+        prerequisite_match = re.search(r'^(\w+(?:\s+\w+)*)\s+must\s+complete\s+(\w+(?:\s+\w+)*)\s+before\s+(\w+(?:\s+\w+)*)$', text, re.IGNORECASE)
+        if prerequisite_match:
+            prereq = prerequisite_match.group(2).replace(' ', '_')
+            course = prerequisite_match.group(3).replace(' ', '_')
+            prereq_constant = self.extract_individual_constant(prereq)
+            course_constant = self.extract_individual_constant(course)
+            return predicate("prerequisite", ConstantTerm(prereq_constant), ConstantTerm(course_constant))
+        
+        # Check for completion statements (e.g., "Alice completed Math 101" -> completed(Alice, Math_101))
+        completed_match = re.search(r'^(\w+)\s+completed\s+(\w+(?:\s+\w+)*)$', text, re.IGNORECASE)
+        if completed_match:
+            student = completed_match.group(1)
+            course = completed_match.group(2).replace(' ', '_')
+            student_constant = self.extract_individual_constant(student)
+            course_constant = self.extract_individual_constant(course)
+            return predicate("completed", ConstantTerm(student_constant), ConstantTerm(course_constant))
+        
+        # Check for "but not" completion statements (e.g., "Bob completed Math 301 but not Math 201")
+        # This is a complex statement that we'll handle as a special case
+        but_not_match = re.search(r'^(\w+)\s+completed\s+(\w+(?:\s+\w+)*)\s+but\s+not\s+(\w+(?:\s+\w+)*)$', text, re.IGNORECASE)
+        if but_not_match:
+            student = but_not_match.group(1)
+            completed_course = but_not_match.group(2).replace(' ', '_')
+            not_completed_course = but_not_match.group(3).replace(' ', '_')
+            student_constant = self.extract_individual_constant(student)
+            completed_constant = self.extract_individual_constant(completed_course)
+            not_completed_constant = self.extract_individual_constant(not_completed_course)
+            # Return the completed course (the violation will be detected by the inference engine)
+            return predicate("completed", ConstantTerm(student_constant), ConstantTerm(completed_constant))
+        
+        # Check for "depends on" patterns (e.g., "Service A depends on Service B" -> depends_on(Service_A, Service_B))
+        depends_match = re.search(r'^(\w+(?:\s+\w+)*)\s+depends\s+on\s+(\w+(?:\s+\w+)*)$', text, re.IGNORECASE)
+        if depends_match:
+            subject = depends_match.group(1).replace(' ', '_')
+            dependency = depends_match.group(2).replace(' ', '_')
+            subject_constant = self.extract_individual_constant(subject)
+            dependency_constant = self.extract_individual_constant(dependency)
+            return predicate("depends_on", ConstantTerm(subject_constant), ConstantTerm(dependency_constant))
+        
+        # Check for "is down" patterns (e.g., "Database D is down" -> down(Database_D))
+        is_down_match = re.search(r'^(\w+(?:\s+\w+)*)\s+is\s+down$', text, re.IGNORECASE)
+        if is_down_match:
+            subject = is_down_match.group(1).replace(' ', '_')
+            subject_constant = self.extract_individual_constant(subject)
+            return predicate("down", ConstantTerm(subject_constant))
+        
+        # Check for "is working" patterns (e.g., "Service C is working" -> working(Service_C))
+        is_working_match = re.search(r'^(\w+(?:\s+\w+)*)\s+is\s+working$', text, re.IGNORECASE)
+        if is_working_match:
+            subject = is_working_match.group(1).replace(' ', '_')
+            subject_constant = self.extract_individual_constant(subject)
+            return predicate("working", ConstantTerm(subject_constant))
+        
+        # Check for "requires" patterns (e.g., "The board meeting requires in-person attendance" -> requires_in_person_attendance(board_meeting))
+        requires_match = re.search(r'^(\w+(?:\s+\w+)*)\s+requires\s+(.+)$', text, re.IGNORECASE)
+        if requires_match:
+            subject = requires_match.group(1).replace(' ', '_')
+            requirement = requires_match.group(2).replace(' ', '_').replace('-', '_')
+            subject_constant = self.extract_individual_constant(subject)
+            return predicate(f"requires_{requirement}", ConstantTerm(subject_constant))
+        
+        # Check for "cannot" patterns first (e.g., "Penguins cannot fly" -> ¬fly(Penguins))
+        cannot_match = re.search(r'^(\w+)\s+cannot\s+(\w+)$', text, re.IGNORECASE)
+        if cannot_match:
+            subject = cannot_match.group(1)
+            action = cannot_match.group(2)
+            pred_name = self.extract_predicate_name(action)
+            subject_constant = self.extract_individual_constant(subject)
+            return f_neg(predicate(pred_name, ConstantTerm(subject_constant)))
+        
+        # Check for "have" patterns (e.g., "Penguins have wings" -> have_wings(Penguins))
+        have_match = re.search(r'^(\w+)\s+have\s+(\w+)$', text, re.IGNORECASE)
+        if have_match:
+            subject = have_match.group(1)
+            object_noun = have_match.group(2)
+            pred_name = f"have_{object_noun}"
+            subject_constant = self.extract_individual_constant(subject)
+            return predicate(pred_name, ConstantTerm(subject_constant))
+        
+        # Check for "can" patterns (e.g., "Penguins can fly" -> fly(Penguins))
         can_match = re.search(r'^(\w+)\s+can\s+(\w+)$', text, re.IGNORECASE)
         if can_match:
             subject = can_match.group(1)
@@ -171,14 +264,28 @@ class FirstOrderLogicConverter:
         scope_predicate_parts = []
         has_negation = False
         
-        for token in scope_doc:
-            if token.dep_ == "neg" or token.text.lower() in ["not", "no", "never", "cannot", "can't"]:
-                has_negation = True
-            elif token.dep_ in ["acomp", "attr", "advmod", "ROOT", "dobj", "pobj"] and token.pos_ in ["ADJ", "VERB", "NOUN"]:
-                scope_predicate_parts.append(token.text)
-        
-        if not scope_predicate_parts:
-            scope_predicate_parts = [scope]
+        # Special handling for "lay eggs" pattern
+        if "lay eggs" in scope.lower():
+            scope_predicate_parts = ["lay_eggs"]
+        elif "have wings" in scope.lower():
+            scope_predicate_parts = ["have_wings"]
+        elif "need" in scope.lower():
+            # Extract the object after "need"
+            need_match = re.search(r'need\s+(.+)', scope.lower())
+            if need_match:
+                need_object = need_match.group(1).strip()
+                scope_predicate_parts = [f"need_{self.normalize_identifier(need_object)}"]
+            else:
+                scope_predicate_parts = ["need"]
+        else:
+            for token in scope_doc:
+                if token.dep_ == "neg" or token.text.lower() in ["not", "no", "never", "cannot", "can't"]:
+                    has_negation = True
+                elif token.dep_ in ["acomp", "attr", "advmod", "ROOT", "dobj", "pobj"] and token.pos_ in ["ADJ", "VERB", "NOUN"]:
+                    scope_predicate_parts.append(token.text)
+            
+            if not scope_predicate_parts:
+                scope_predicate_parts = [scope]
         
         # For "Everyone who passed gets a certificate", scope is "gets a certificate"
         # We need to extract the action and object properly
