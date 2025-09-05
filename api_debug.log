@@ -1,48 +1,161 @@
-INFO:     Started server process [57678]
+INFO:     Started server process [64832]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 2:30pm to 3:30pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
-DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 2:30pm to 3:30pm', 'No one can be in two meetings at once']
-DEBUG: Query: Is this schedule possible?
-DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
-DEBUG: Found meeting interval for premise 2: MEETING_2 from 14:30 to 15:30
-DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_14:30_to_15:30'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 14:30 to 15:30', 'Overlap detected - schedule is NOT possible:', '  MEETING_1 and MEETING_2 overlap from 14:30 to 15:00 (30 minutes)'], 'inference': 'Scheduling conflict analysis: 1 overlap(s) detected - schedule is NOT feasible'}
-INFO:     127.0.0.1:50327 - "POST /temporal/infer HTTP/1.1" 200 OK
-Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
-DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once']
-DEBUG: Query: Is this schedule possible?
-DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
-DEBUG: Found meeting interval for premise 2: MEETING_2 from 15:30 to 16:00
-DEBUG: check_temporal_consistency returned: {'answer': True, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_15:30_to_16:00'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 15:30 to 16:00', 'No overlaps detected between meetings - schedule is possible'], 'inference': 'Scheduling conflict analysis: no overlaps detected - schedule is feasible'}
-INFO:     127.0.0.1:50329 - "POST /temporal/infer HTTP/1.1" 200 OK
-Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
-DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once']
-DEBUG: Query: Is this schedule possible?
-DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
-DEBUG: Found meeting interval for premise 2: MEETING_2 from 15:30 to 16:00
-DEBUG: check_temporal_consistency returned: {'answer': True, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_15:30_to_16:00'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 15:30 to 16:00', 'No overlaps detected between meetings - schedule is possible'], 'inference': 'Scheduling conflict analysis: no overlaps detected - schedule is feasible'}
-INFO:     127.0.0.1:50343 - "POST /temporal/infer HTTP/1.1" 200 OK
-Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 1:30pm to 4pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
-DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 1:30pm to 4pm', 'No one can be in two meetings at once']
-DEBUG: Query: Is this schedule possible?
-DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
-DEBUG: Found meeting interval for premise 2: MEETING_2 from 13:30 to 16:00
-DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_13:30_to_16:00'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 13:30 to 16:00', 'Overlap detected - schedule is NOT possible:', '  MEETING_1 and MEETING_2 overlap from 14:00 to 15:00 (60 minutes)'], 'inference': 'Scheduling conflict analysis: 1 overlap(s) detected - schedule is NOT feasible'}
-INFO:     127.0.0.1:50345 - "POST /temporal/infer HTTP/1.1" 200 OK
-Enhanced API: Temporal inference request - Premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 10am tomorrow'], Query: Am I still studying?
-DEBUG: About to call check_temporal_consistency with premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 10am tomorrow']
-DEBUG: Query: Am I still studying?
-DEBUG: Found time_result 09:00 for premise 2: The exam starts at 9am tomorrow
-DEBUG: Setting start_time = 09:00
-DEBUG: Found time_result 10:00 for premise 3: It is now 10am tomorrow
-DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'i will study U the exam starts', 'premise_2': 'starts_at(09:00)', 'premise_3': 'current_time(10:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Until Statement: I will study until the exam starts', 'Current Time: 10:00', 'End condition met: The exam starts at 9am tomorrow at 09:00', 'Action has stopped because end condition was met at 09:00', 'Current time (10:00) is after end time (09:00)'], 'inference': 'Until semantics: action stops when condition is met'}
-INFO:     127.0.0.1:50351 - "POST /temporal/infer HTTP/1.1" 200 OK
-Enhanced API: Temporal inference request - Premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 8am tomorrow'], Query: Am I still studying?
-DEBUG: About to call check_temporal_consistency with premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 8am tomorrow']
-DEBUG: Query: Am I still studying?
-DEBUG: Found time_result 09:00 for premise 2: The exam starts at 9am tomorrow
-DEBUG: Setting start_time = 09:00
-DEBUG: Found time_result 08:00 for premise 3: It is now 8am tomorrow
-DEBUG: check_temporal_consistency returned: {'answer': True, 'temporal_formulas': {'premise_1': 'i will study U the exam starts', 'premise_2': 'starts_at(09:00)', 'premise_3': 'current_time(08:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Until Statement: I will study until the exam starts', 'Current Time: 08:00', 'Action continues because no end condition has been met'], 'inference': 'Until semantics: action stops when condition is met'}
-INFO:     127.0.0.1:50355 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 2:30pm today'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 2:30pm today']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 14:30 for premise 3: It is now 2:30pm today
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(14:30)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 14:30', 'Time elapsed: 510 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 14:30 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:50680 - "POST /temporal/infer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50922 - "OPTIONS /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 7:30pm today'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 7:30pm today']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 19:30 for premise 3: It is now 7:30pm today
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(19:30)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 19:30', 'Time elapsed: 810 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 19:30 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:50922 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 7:30pm today'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 7:30pm today']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 19:30 for premise 3: It is now 7:30pm today
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(19:30)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 19:30', 'Time elapsed: 810 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 19:30 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:50926 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm today'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm today']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm today
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:50929 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm am
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:50930 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm am
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51216 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm am
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51216 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 2:30pm today'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 2:30pm today']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 14:30 for premise 3: It is now 2:30pm today
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(14:30)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 14:30', 'Time elapsed: 510 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 14:30 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51268 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['The store stays open until 9pm or until supplies run out', 'It is now 8pm', 'Supplies ran out at 7pm'], Query: Is the store open now?
+DEBUG: About to call check_temporal_consistency with premises: ['The store stays open until 9pm or until supplies run out', 'It is now 8pm', 'Supplies ran out at 7pm']
+DEBUG: Query: Is the store open now?
+DEBUG: Found time_result 20:00 for premise 2: It is now 8pm
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': '(the store stays open until 9pm) U (until supplies run out)', 'premise_2': 'current_time(20:00)', 'premise_3': 'ran_out_at(19:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Until Statement: The store stays open until 9pm or until supplies run out', 'Current Time: 20:00', 'End condition met: Supplies ran out at 7pm at 19:00', 'Action has stopped because end condition was met at 19:00', 'Current time (20:00) is after end time (19:00)'], 'inference': 'Until semantics: action stops when condition is met'}
+INFO:     127.0.0.1:51273 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Inference request - Premises: ['∃b((birds(b) ∧ swim(b)))', 'birds(Penguins)', '∀p((penguins(p) → swim(p)))'], Conclusion: Can some birds swim?
+Enhanced API: Using logic type: first_order
+FOL Parser: Converting text: 'Can some birds swim?'
+FOL Parser: Detected quantified statement
+FOL Parser: Result: ∃b((birds(b) ∧ swim(b)))
+INFO:     127.0.0.1:51276 - "POST /infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['I will study until the exam starts', 'The exam starts at 2pm', 'It is now 1pm'], Query: Am I studying now?
+DEBUG: About to call check_temporal_consistency with premises: ['I will study until the exam starts', 'The exam starts at 2pm', 'It is now 1pm']
+DEBUG: Query: Am I studying now?
+DEBUG: Found time_result 14:00 for premise 2: The exam starts at 2pm
+DEBUG: Setting start_time = 14:00
+DEBUG: Found time_result 13:00 for premise 3: It is now 1pm
+DEBUG: check_temporal_consistency returned: {'answer': True, 'temporal_formulas': {'premise_1': 'i will study U the exam starts', 'premise_2': 'starts_at(14:00)', 'premise_3': 'current_time(13:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Until Statement: I will study until the exam starts', 'Current Time: 13:00', 'Action continues because no end condition has been met'], 'inference': 'Until semantics: action stops when condition is met'}
+INFO:     127.0.0.1:51279 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['I will study until the exam starts', 'The exam starts at 2pm', 'It is now 3pm'], Query: Am I studying now?
+DEBUG: About to call check_temporal_consistency with premises: ['I will study until the exam starts', 'The exam starts at 2pm', 'It is now 3pm']
+DEBUG: Query: Am I studying now?
+DEBUG: Found time_result 14:00 for premise 2: The exam starts at 2pm
+DEBUG: Setting start_time = 14:00
+DEBUG: Found time_result 15:00 for premise 3: It is now 3pm
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'i will study U the exam starts', 'premise_2': 'starts_at(14:00)', 'premise_3': 'current_time(15:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Until Statement: I will study until the exam starts', 'Current Time: 15:00', 'End condition met: The exam starts at 2pm at 14:00', 'Action has stopped because end condition was met at 14:00', 'Current time (15:00) is after end time (14:00)'], 'inference': 'Until semantics: action stops when condition is met'}
+INFO:     127.0.0.1:51284 - "POST /temporal/infer HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51286 - "POST /knowledge/query HTTP/1.1" 422 Unprocessable Content
+Enhanced API: Querying knowledge: 'Do penguins have wings?'
+=== KNOWLEDGE BASE QUERY START ===
+Knowledge Base: Querying: 'Do penguins have wings?'
+DEBUG: Logic type detected: first_order
+DEBUG: Question: Do penguins have wings?
+DEBUG: Number of facts: 8
+DEBUG: Using first-order inference
+DEBUG: Converting conclusion text: 'have_wings(Penguins)'
+DEBUG: Using pre-formatted FOL: have_wings(Penguins)
+DEBUG KB: Premises: [{'first_order_formula': '∀b((birds(b) → have_wings(b)))', 'original_text': 'All birds have wings'}, {'first_order_formula': '∀b((birds(b) → lay_eggs(b)))', 'original_text': 'All birds lay eggs'}, {'first_order_formula': 'birds(Penguins)', 'original_text': 'Penguins are birds'}, {'first_order_formula': '¬fly(Penguins)', 'original_text': 'Penguins cannot fly'}, {'first_order_formula': '∃b((birds(b) ∧ swim(b)))', 'original_text': 'Some birds can swim'}, {'first_order_formula': '∀p((penguins(p) → birds(p)))', 'original_text': 'All penguins are birds'}, {'first_order_formula': '∀p((penguins(p) → swim(p)))', 'original_text': 'All penguins can swim'}, {'first_order_formula': 'birds(Robins)', 'original_text': 'Robins are birds'}]
+DEBUG KB: Conclusion: {'first_order_formula': 'have_wings(Penguins)', 'original_text': 'have_wings(Penguins)'}
+DEBUG: Checking Universal Instantiation pattern
+DEBUG: Premise formulas: ['∀b((birds(b) → have_wings(b)))', '∀b((birds(b) → lay_eggs(b)))', 'birds(Penguins)', '¬fly(Penguins)', '∃b((birds(b) ∧ swim(b)))', '∀p((penguins(p) → birds(p)))', '∀p((penguins(p) → swim(p)))', 'birds(Robins)']
+DEBUG: Conclusion formula: have_wings(Penguins)
+DEBUG: Universal match found - var: b, domain_pred: birds, scope_pred: have_wings
+DEBUG: Universal match found - var: b, domain_pred: birds, scope_pred: have_wings
+DEBUG KB: Result: {'valid': True, 'explanation': "✓ Valid inference using Universal Instantiation and Modus Ponens. From the universal statement '∀b((birds(b) → have_wings(b)))' and the instance 'birds(Penguins)', we can conclude 'have_wings(Penguins)'.", 'steps': ["Premises: ['∀b((birds(b) → have_wings(b)))', '∀b((birds(b) → lay_eggs(b)))', 'birds(Penguins)', '¬fly(Penguins)', '∃b((birds(b) ∧ swim(b)))', '∀p((penguins(p) → birds(p)))', '∀p((penguins(p) → swim(p)))', 'birds(Robins)']", 'Conclusion: have_wings(Penguins)', 'Universal Instantiation: From ∀b(birds(b) → have_wings(b))', 'Instantiate with Penguins: birds(Penguins) → have_wings(Penguins)', 'Modus Ponens: birds(Penguins) and birds(Penguins) → have_wings(Penguins)', 'Therefore: have_wings(Penguins)']}
+INFO:     127.0.0.1:51291 - "POST /knowledge/query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51304 - "OPTIONS /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm am
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51304 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm am']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm am
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51304 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51304 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51304 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm'], Query: Is it time for the next dose?
+DEBUG: About to call check_temporal_consistency with premises: ['Take medicine every 8 hours', 'First dose was at 6am today', 'It is now 8:00pm']
+DEBUG: Query: Is it time for the next dose?
+DEBUG: Found interval_schedule for premise 1: Take medicine every 8 hours
+DEBUG: Found start_time for interval: 06:00 from 'First dose was at 6am today'
+DEBUG: Found time_result 20:00 for premise 3: It is now 8:00pm
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'interval_take_medicine_every_8_hours', 'premise_3': 'current_time(20:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Interval Schedule Analysis:', 'Schedule: take medicine every 8 hour', 'First dose: 06:00', 'Current time: 20:00', 'Time elapsed: 840 minutes', 'Intervals passed: 1', 'Current interval dose time: 22:00', 'DEBUG: start_total_minutes=360, interval=480, calculation=360 + (1 + 1) * 480 = 1320', 'It is not yet time for the next dose (current time 20:00 < dose time 22:00)'], 'inference': 'Interval schedule reasoning: 8 hour intervals'}
+INFO:     127.0.0.1:51304 - "POST /temporal/infer HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [64832]
