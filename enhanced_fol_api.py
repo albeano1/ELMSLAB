@@ -3388,8 +3388,14 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
         if until_condition and current_time:
             reasoning_steps.append("Until Statement Analysis:")
             
-            # Format current time for display
-            current_time_str = f"{current_time // 60:02d}:{current_time % 60:02d}"
+            # Convert current_time to minutes for display and comparison
+            if isinstance(current_time, str):
+                current_hour, current_minute = map(int, current_time.split(':'))
+                current_total_minutes = current_hour * 60 + current_minute
+                current_time_str = current_time
+            else:
+                current_total_minutes = current_time
+                current_time_str = f"{current_time // 60:02d}:{current_time % 60:02d}"
             
             reasoning_steps.append(f"Condition: {until_condition}")
             reasoning_steps.append(f"Current time: {current_time_str}")
@@ -3401,15 +3407,15 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
                 reasoning_steps.append(f"Stop time: {stop_time_str}")
                 
                 # Check if the stop condition has been met
-                if current_time > until_stop_time:
+                if current_total_minutes > until_stop_time:
                     answer = False  # The condition stopped, so it's no longer active
-                    time_since_stop = current_time - until_stop_time
+                    time_since_stop = current_total_minutes - until_stop_time
                     since_hours = time_since_stop // 60
                     since_minutes = time_since_stop % 60
                     reasoning_steps.append(f"❌ No, the condition stopped {since_hours}h {since_minutes}m ago")
                 else:
                     answer = True  # The condition is still active
-                    time_until_stop = until_stop_time - current_time
+                    time_until_stop = until_stop_time - current_total_minutes
                     until_hours = time_until_stop // 60
                     until_minutes = time_until_stop % 60
                     reasoning_steps.append(f"✅ Yes, the condition is still active - {until_hours}h {until_minutes}m until stop")
@@ -3583,8 +3589,15 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
             exp_minute = parking_expiration_time % 60
             exp_time_str = f"{exp_hour:02d}:{exp_minute:02d}"
             
-            current_hour = current_time // 60
-            current_minute = current_time % 60
+            # Convert current_time from string format to minutes
+            if isinstance(current_time, str):
+                current_hour, current_minute = map(int, current_time.split(':'))
+                current_total_minutes = current_hour * 60 + current_minute
+            else:
+                current_total_minutes = current_time
+                current_hour = current_time // 60
+                current_minute = current_time % 60
+            
             current_time_str = f"{current_hour:02d}:{current_minute:02d}"
             
             reasoning_steps.append(f"Parking started: {start_time_str}")
@@ -3593,24 +3606,24 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
             reasoning_steps.append(f"Current time: {current_time_str}")
             
             # Check if parking has expired
-            if current_time >= parking_expiration_time:
+            if current_total_minutes >= parking_expiration_time:
                 # Parking has expired
                 reasoning_steps.append(f"❌ Parking expired at {exp_time_str}")
                 
                 # Check if the query is about getting a ticket
                 if query and "ticket" in query.lower():
                     answer = True  # Yes, you will get a ticket
-                    reasoning_steps.append(f"✅ Yes, you will get a ticket - parking expired {((current_time - parking_expiration_time) // 60)}h {((current_time - parking_expiration_time) % 60)}m ago")
+                    reasoning_steps.append(f"✅ Yes, you will get a ticket - parking expired {((current_total_minutes - parking_expiration_time) // 60)}h {((current_total_minutes - parking_expiration_time) % 60)}m ago")
                 else:
                     answer = True  # Parking has expired
                     reasoning_steps.append(f"   (You need to pay or move your car)")
                 
                 # Additional context about current status
-                if parking_free_after and current_time >= parking_free_after:
+                if parking_free_after and current_total_minutes >= parking_free_after:
                     reasoning_steps.append(f"   (Parking is now free after {parking_free_after // 60:02d}:{parking_free_after % 60:02d})")
             else:
                 # Parking is still valid
-                time_remaining = parking_expiration_time - current_time
+                time_remaining = parking_expiration_time - current_total_minutes
                 remaining_hours = time_remaining // 60
                 remaining_minutes = time_remaining % 60
                 reasoning_steps.append(f"✅ Parking is still valid - {remaining_hours}h {remaining_minutes}m remaining")
@@ -3767,10 +3780,17 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
                     else:
                         # Check if there's an "until" condition that would indicate the activity continues
                         if until_condition and until_stop_time:
+                            # Convert current_time to minutes for comparison
+                            if isinstance(current_time, str):
+                                current_hour, current_minute = map(int, current_time.split(':'))
+                                current_total_minutes = current_hour * 60 + current_minute
+                            else:
+                                current_total_minutes = current_time
+                            
                             # There's an until condition with a specific stop time
-                            if current_time < until_stop_time:
+                            if current_total_minutes < until_stop_time:
                                 answer = True  # Still doing the activity
-                                time_until_stop = until_stop_time - current_time
+                                time_until_stop = until_stop_time - current_total_minutes
                                 until_hours = time_until_stop // 60
                                 until_minutes = time_until_stop % 60
                                 reasoning_steps.append(f"Combined 'since' and 'until' analysis:")
@@ -3778,7 +3798,7 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
                                 reasoning_steps.append(f"✅ Yes, still {action} - {until_hours}h {until_minutes}m until stop")
                             else:
                                 answer = False  # Past the until time
-                                time_since_stop = current_time - until_stop_time
+                                time_since_stop = current_total_minutes - until_stop_time
                                 since_hours = time_since_stop // 60
                                 since_minutes = time_since_stop % 60
                                 reasoning_steps.append(f"Combined 'since' and 'until' analysis:")
