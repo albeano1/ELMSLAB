@@ -3436,16 +3436,24 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
         if shipping_deadline and current_time and order_placed_time is not None:
             reasoning_steps.append("Shipping Analysis:")
             
+            # Convert current_time to minutes for display and comparison
+            if isinstance(current_time, str):
+                current_hour, current_minute = map(int, current_time.split(':'))
+                current_total_minutes = current_hour * 60 + current_minute
+                current_time_str = current_time
+            else:
+                current_total_minutes = current_time
+                current_time_str = f"{current_time // 60:02d}:{current_time % 60:02d}"
+            
             # Format times for display
             deadline_str = f"{shipping_deadline // 60:02d}:{shipping_deadline % 60:02d}"
-            current_time_str = f"{current_time // 60:02d}:{current_time % 60:02d}"
             
             reasoning_steps.append(f"Shipping deadline: {deadline_str}")
             reasoning_steps.append(f"Order placed at: {current_time_str}")
             reasoning_steps.append(f"Current time: {current_time_str}")
             
             # Check if order was placed before deadline
-            if order_placed_time < shipping_deadline:
+            if current_total_minutes < shipping_deadline:
                 # Order was placed before deadline, check business day constraint
                 if shipping_business_days_only:
                     # Check if today is a business day
@@ -3460,7 +3468,7 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
                     reasoning_steps.append(f"✅ Yes, order will ship today - placed before {deadline_str}")
             else:
                 answer = False  # No, placed after deadline
-                time_past_deadline = order_placed_time - shipping_deadline
+                time_past_deadline = current_total_minutes - shipping_deadline
                 past_hours = time_past_deadline // 60
                 past_minutes = time_past_deadline % 60
                 reasoning_steps.append(f"❌ No, order won't ship today - placed {past_hours}h {past_minutes}m after {deadline_str} deadline")
