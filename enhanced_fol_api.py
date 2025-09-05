@@ -2177,6 +2177,43 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
                 temporal_formulas[f"premise_{i+1}"] = f"since_{premise_lower.replace(' ', '_')}"
                 print(f"DEBUG: Found since_premise for premise {i+1}: {premise}")
             
+            # Parse recurring events (e.g., "Team meetings happen every Monday at 10am")
+            elif any(recurring_word in premise_lower for recurring_word in ["happen every", "every", "recurring", "weekly", "daily"]) and any(time_word in premise_lower for time_word in ["am", "pm", ":", "at"]):
+                # Extract day and time
+                day_match = re.search(r'(monday|tuesday|wednesday|thursday|friday|saturday|sunday)', premise_lower)
+                time_match = re.search(r'at\s*(\d{1,2}):?(\d{2})?\s*(am|pm)?', premise_lower)
+                
+                if day_match and time_match:
+                    day = day_match.group(1)
+                    hour = int(time_match.group(1))
+                    minute = int(time_match.group(2)) if time_match.group(2) else 0
+                    period = time_match.group(3)
+                    
+                    # Convert to 24-hour format
+                    if period == "pm" and hour != 12:
+                        hour += 12
+                    elif period == "am" and hour == 12:
+                        hour = 0
+                    
+                    event_time = hour * 60 + minute
+                    
+                    recurring_event = {
+                        "day": day,
+                        "time": event_time,
+                        "time_str": f"{hour:02d}:{minute:02d}",
+                        "formula": f"recurring_event({day}, {event_time} minutes)"
+                    }
+                    temporal_formulas[f"premise_{i+1}"] = recurring_event["formula"]
+                    print(f"DEBUG: Found recurring_event {recurring_event} for premise {i+1}: {premise}")
+            
+            # Parse current day (e.g., "Today is Monday")
+            elif "today is" in premise_lower:
+                day_match = re.search(r'(monday|tuesday|wednesday|thursday|friday|saturday|sunday)', premise_lower)
+                if day_match:
+                    current_day = day_match.group(1)
+                    temporal_formulas[f"premise_{i+1}"] = f"current_day({current_day})"
+                    print(f"DEBUG: Found current_day {current_day} for premise {i+1}: {premise}")
+            
             # Parse time statements and start times for intervals
             elif any(time_word in premise_lower for time_word in ["at", "now", "pm", "am", "ran out", "started", "dose", "first"]):
                 time_premises.append(premise)
@@ -2230,6 +2267,39 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
         # Parse query
         query_lower = query.lower()
         query_formula = query_lower
+        
+        # Recurring events reasoning
+        if recurring_event and current_day and current_time is not None:
+            reasoning_steps.append("Recurring Event Analysis:")
+            
+            # Check if today matches the recurring event day
+            if current_day.lower() == recurring_event["day"].lower():
+                reasoning_steps.append(f"Today is {current_day} - matches recurring event day")
+                reasoning_steps.append(f"Event scheduled for: {recurring_event['time_str']}")
+                reasoning_steps.append(f"Current time: {current_time // 60:02d}:{current_time % 60:02d}")
+                
+                # Check if the event is happening now (within a reasonable time window)
+                time_diff = abs(current_time - recurring_event["time"])
+                
+                if time_diff <= 30:  # Within 30 minutes
+                    answer = True
+                    reasoning_steps.append(f"✅ Event is happening now (within 30 minutes of scheduled time)")
+                elif current_time >= recurring_event["time"]:
+                    answer = False
+                    reasoning_steps.append(f"❌ Event has already passed (scheduled for {recurring_event['time_str']})")
+                else:
+                    answer = False
+                    reasoning_steps.append(f"❌ Event hasn't started yet (scheduled for {recurring_event['time_str']})")
+            else:
+                answer = False
+                reasoning_steps.append(f"❌ Today is {current_day}, but event happens on {recurring_event['day']}")
+            
+            return {
+                "answer": answer,
+                "temporal_formulas": temporal_formulas,
+                "reasoning_steps": reasoning_steps,
+                "inference": f"Recurring event analysis: {recurring_event['day']} at {recurring_event['time_str']}"
+            }
         
         # Perform temporal reasoning
         reasoning_steps.append("Temporal Analysis:")
@@ -2476,6 +2546,10 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
         parking_start_time = None
         parking_free_after = None
         
+        # Recurring events analysis: Check for recurring events
+        recurring_event = None
+        current_day = None
+        
         # Project timeline analysis: Check for project deadlines, durations, and sequential tasks
         project_deadline = None
         project_duration = None
@@ -2619,6 +2693,7 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
                         })
                         temporal_formulas[f"premise_{i+1}"] = f"sequential({second_task.replace(' ', '_')} before {first_task.replace(' ', '_')})"
                         print(f"DEBUG: Found sequential_task for premise {i+1}: {premise}")
+        
         
         # Parking duration reasoning
         if parking_duration and parking_start_time and current_time:
