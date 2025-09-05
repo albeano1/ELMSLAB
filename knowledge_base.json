@@ -529,5 +529,32 @@
     "confidence": 0.8,
     "timestamp": "2025-09-04T23:09:34.184019",
     "source": "user_input"
+  },
+  {
+    "id": "fact_60_1757054233",
+    "text": "The store stays open until 9pm or until supplies run out",
+    "formula": "the_store_stays_open_until_9pm_or_until_supplies_run_out",
+    "formula_type": "propositional",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T23:37:13.822388",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_61_1757054239",
+    "text": "It is now 8pm",
+    "formula": "now_pm(It)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T23:37:19.410665",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_62_1757054244",
+    "text": "Supplies ran out at 7pm",
+    "formula": "supplies_ran_out_at_7pm",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T23:37:24.835527",
+    "source": "user_input"
   }
 ]

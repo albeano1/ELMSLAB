@@ -1,0 +1,48 @@
+INFO:     Started server process [57678]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 2:30pm to 3:30pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
+DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 2:30pm to 3:30pm', 'No one can be in two meetings at once']
+DEBUG: Query: Is this schedule possible?
+DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
+DEBUG: Found meeting interval for premise 2: MEETING_2 from 14:30 to 15:30
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_14:30_to_15:30'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 14:30 to 15:30', 'Overlap detected - schedule is NOT possible:', '  MEETING_1 and MEETING_2 overlap from 14:30 to 15:00 (30 minutes)'], 'inference': 'Scheduling conflict analysis: 1 overlap(s) detected - schedule is NOT feasible'}
+INFO:     127.0.0.1:50327 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
+DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once']
+DEBUG: Query: Is this schedule possible?
+DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
+DEBUG: Found meeting interval for premise 2: MEETING_2 from 15:30 to 16:00
+DEBUG: check_temporal_consistency returned: {'answer': True, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_15:30_to_16:00'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 15:30 to 16:00', 'No overlaps detected between meetings - schedule is possible'], 'inference': 'Scheduling conflict analysis: no overlaps detected - schedule is feasible'}
+INFO:     127.0.0.1:50329 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
+DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 3:30pm to 4pm', 'No one can be in two meetings at once']
+DEBUG: Query: Is this schedule possible?
+DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
+DEBUG: Found meeting interval for premise 2: MEETING_2 from 15:30 to 16:00
+DEBUG: check_temporal_consistency returned: {'answer': True, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_15:30_to_16:00'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 15:30 to 16:00', 'No overlaps detected between meetings - schedule is possible'], 'inference': 'Scheduling conflict analysis: no overlaps detected - schedule is feasible'}
+INFO:     127.0.0.1:50343 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 1:30pm to 4pm', 'No one can be in two meetings at once'], Query: Is this schedule possible?
+DEBUG: About to call check_temporal_consistency with premises: ['I have a meeting from 2pm to 3pm', 'I have another meeting from 1:30pm to 4pm', 'No one can be in two meetings at once']
+DEBUG: Query: Is this schedule possible?
+DEBUG: Found meeting interval for premise 1: MEETING_1 from 14:00 to 15:00
+DEBUG: Found meeting interval for premise 2: MEETING_2 from 13:30 to 16:00
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_3': 'No one can be in two meetings at once', 'premise_1': 'meeting_meeting_1_from_14:00_to_15:00', 'premise_2': 'meeting_meeting_2_from_13:30_to_16:00'}, 'reasoning_steps': ['Temporal Analysis:', 'Scheduling Conflict Analysis:', 'Meeting MEETING_1: 14:00 to 15:00', 'Meeting MEETING_2: 13:30 to 16:00', 'Overlap detected - schedule is NOT possible:', '  MEETING_1 and MEETING_2 overlap from 14:00 to 15:00 (60 minutes)'], 'inference': 'Scheduling conflict analysis: 1 overlap(s) detected - schedule is NOT feasible'}
+INFO:     127.0.0.1:50345 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 10am tomorrow'], Query: Am I still studying?
+DEBUG: About to call check_temporal_consistency with premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 10am tomorrow']
+DEBUG: Query: Am I still studying?
+DEBUG: Found time_result 09:00 for premise 2: The exam starts at 9am tomorrow
+DEBUG: Setting start_time = 09:00
+DEBUG: Found time_result 10:00 for premise 3: It is now 10am tomorrow
+DEBUG: check_temporal_consistency returned: {'answer': False, 'temporal_formulas': {'premise_1': 'i will study U the exam starts', 'premise_2': 'starts_at(09:00)', 'premise_3': 'current_time(10:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Until Statement: I will study until the exam starts', 'Current Time: 10:00', 'End condition met: The exam starts at 9am tomorrow at 09:00', 'Action has stopped because end condition was met at 09:00', 'Current time (10:00) is after end time (09:00)'], 'inference': 'Until semantics: action stops when condition is met'}
+INFO:     127.0.0.1:50351 - "POST /temporal/infer HTTP/1.1" 200 OK
+Enhanced API: Temporal inference request - Premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 8am tomorrow'], Query: Am I still studying?
+DEBUG: About to call check_temporal_consistency with premises: ['I will study until the exam starts', 'The exam starts at 9am tomorrow', 'It is now 8am tomorrow']
+DEBUG: Query: Am I still studying?
+DEBUG: Found time_result 09:00 for premise 2: The exam starts at 9am tomorrow
+DEBUG: Setting start_time = 09:00
+DEBUG: Found time_result 08:00 for premise 3: It is now 8am tomorrow
+DEBUG: check_temporal_consistency returned: {'answer': True, 'temporal_formulas': {'premise_1': 'i will study U the exam starts', 'premise_2': 'starts_at(09:00)', 'premise_3': 'current_time(08:00)'}, 'reasoning_steps': ['Temporal Analysis:', 'Until Statement: I will study until the exam starts', 'Current Time: 08:00', 'Action continues because no end condition has been met'], 'inference': 'Until semantics: action stops when condition is met'}
+INFO:     127.0.0.1:50355 - "POST /temporal/infer HTTP/1.1" 200 OK

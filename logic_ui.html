@@ -1379,10 +1379,10 @@ It is now 1pm</textarea>
                 let resultText = `<div class="temporal-inference-result">
                     <h3>🧠 Temporal Inference Result</h3>
                     <div class="inference-display">
-                        <strong>Consistent:</strong> <span class="${result.consistency_result.consistent ? 'valid' : 'invalid'}">${result.consistency_result.consistent ? '✅ Yes' : '❌ No'}</span>
+                        <strong>Consistent:</strong> <span class="${result.consistent ? 'valid' : 'invalid'}">${result.consistent ? '✅ Yes' : '❌ No'}</span>
                     </div>
                     <div class="confidence-display">
-                        <strong>Confidence:</strong> ${(result.consistency_result.confidence * 100).toFixed(0)}%
+                        <strong>Confidence:</strong> ${(result.confidence * 100).toFixed(0)}%
                     </div>`;
                 
                 // Add answer display if available
@@ -1431,7 +1431,7 @@ It is now 1pm</textarea>
                     resultText += `</div></div>`;
                 }
                 
-                if (result.consistency_result.issues && result.consistency_result.issues.length > 0) {
+                if (result.consistency_result && result.consistency_result.issues && result.consistency_result.issues.length > 0) {
                     resultText += `<div class="issues-section">
                         <h4>⚠️ Issues Detected</h4>
                         <div class="issues-list">`;
@@ -1450,11 +1450,11 @@ It is now 1pm</textarea>
                 
                 showResult(
                     resultText,
-                    result.consistency_result.consistent ? 'success' : 'error',
+                    result.consistent ? 'success' : 'error',
                     {
-                        consistent: result.consistency_result.consistent,
-                        issues: result.consistency_result.issues,
-                        confidence: result.consistency_result.confidence,
+                        consistent: result.consistent,
+                        issues: result.consistency_result ? result.consistency_result.issues : [],
+                        confidence: result.confidence,
                         reasoning: result.reasoning
                     }
                 );
