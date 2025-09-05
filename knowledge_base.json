@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "fact_1_1757048072",
+    "text": "All men are mortal",
+    "formula": "\u2200m((men(m) \u2192 mortal(m)))",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T21:54:32.588449",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_2_1757048072",
+    "text": "Socrates is a man",
+    "formula": "man(Socrates)",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T21:54:32.605374",
+    "source": "user_input"
+  }
+]
