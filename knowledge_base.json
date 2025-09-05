@@ -1,20 +1,29 @@
 [
   {
-    "id": "fact_1_1757015284",
-    "text": "a penguin is a bird",
-    "formula": "bird(penguin)",
+    "id": "fact_1_1757030822",
+    "text": "All birds have wings",
+    "formula": "\u2200b((birds(b) \u2192 wings(b)))",
     "formula_type": "first_order",
     "confidence": 0.8,
-    "timestamp": "2025-09-04T12:48:04.417944",
+    "timestamp": "2025-09-04T17:07:02.969509",
     "source": "user_input"
   },
   {
-    "id": "fact_2_1757015458",
+    "id": "fact_2_1757030839",
     "text": "It rained yesterday",
-    "formula": "Past(rain)",
+    "formula": "\u25cf(rain_to_yesterday(it))",
     "formula_type": "temporal",
     "confidence": 0.8,
-    "timestamp": "2025-09-04T12:50:58.083284",
+    "timestamp": "2025-09-04T17:07:19.700656",
+    "source": "user_input"
+  },
+  {
+    "id": "fact_3_1757030850",
+    "text": "All cats are animals",
+    "formula": "\u2200c((cats(c) \u2192 animals(c)))",
+    "formula_type": "first_order",
+    "confidence": 0.8,
+    "timestamp": "2025-09-04T17:07:30.900491",
     "source": "user_input"
   }
 ]

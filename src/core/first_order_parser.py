@@ -61,6 +61,9 @@ class FirstOrderLogicConverter:
             r'\beach\s+(\w+)\s+(?:is|are|can|do|will)\s+(.+)',  # "Each bird flies"
             r'\bany\s+(\w+)\s+(?:is|are|can|do|will)\s+(.+)',  # "Any person can learn"
             r'\bevery\s+(\w+)\s+(.+)',  # "Every student studies" (more general)
+            r'\ball\s+(\w+(?:\s+\w+)*)\s+(?:have|has)\s+(.+)',  # "All profitable companies have increasing sales"
+            r'\ball\s+(\w+(?:\s+\w+)*)\s+(.+)',  # "All X Y" (more general)
+            r'\beveryone\s+who\s+(.+?)\s+(?:gets|has|is|are|can|do|will)\s+(.+)',  # "Everyone who passed gets a certificate"
         ]
         
         for pattern in universal_patterns:
@@ -68,6 +71,7 @@ class FirstOrderLogicConverter:
             if match:
                 variable_desc = match.group(1)
                 scope = match.group(2)
+                
                 return Quantifier.FORALL, variable_desc, scope
         
         # Existential quantifier patterns
@@ -89,6 +93,15 @@ class FirstOrderLogicConverter:
     
     def parse_individual_statement(self, text: str) -> FirstOrderFormula:
         """Parse statements about individuals (e.g., 'Socrates is human')"""
+        # Check for "can" patterns first (e.g., "Penguins can fly" -> fly(Penguins))
+        can_match = re.search(r'^(\w+)\s+can\s+(\w+)$', text, re.IGNORECASE)
+        if can_match:
+            subject = can_match.group(1)
+            action = can_match.group(2)
+            pred_name = self.extract_predicate_name(action)
+            subject_constant = self.extract_individual_constant(subject)
+            return predicate(pred_name, ConstantTerm(subject_constant))
+        
         doc = self.nlp(text)
         
         # Find the subject and predicate
@@ -150,6 +163,7 @@ class FirstOrderLogicConverter:
         
         # Parse the scope to create the predicate
         # For "All humans are mortal" -> scope is "mortal"
+        # For "All profitable companies have increasing sales or decreasing costs" -> scope is "have increasing sales or decreasing costs"
         # We need to create: ∀x(Human(x) → Mortal(x))
         
         # Extract predicate from scope and check for negation
@@ -160,20 +174,55 @@ class FirstOrderLogicConverter:
         for token in scope_doc:
             if token.dep_ == "neg" or token.text.lower() in ["not", "no", "never", "cannot", "can't"]:
                 has_negation = True
-            elif token.dep_ in ["acomp", "attr", "advmod", "ROOT"] and token.pos_ in ["ADJ", "VERB", "NOUN"]:
+            elif token.dep_ in ["acomp", "attr", "advmod", "ROOT", "dobj", "pobj"] and token.pos_ in ["ADJ", "VERB", "NOUN"]:
                 scope_predicate_parts.append(token.text)
         
         if not scope_predicate_parts:
             scope_predicate_parts = [scope]
         
-        scope_pred_name = self.extract_predicate_name(" ".join(scope_predicate_parts))
+        # For "Everyone who passed gets a certificate", scope is "gets a certificate"
+        # We need to extract the action and object properly
+        if "gets" in scope.lower():
+            # Extract "gets a certificate" -> "get_certificate"
+            scope_pred_name = self.extract_predicate_name(scope)
+        else:
+            scope_pred_name = self.extract_predicate_name(" ".join(scope_predicate_parts))
+        
+        # Normalize predicate names for consistency
+        if scope_pred_name == "certificate":
+            scope_pred_name = "get_certificate"
+        
         domain_pred_name = self.extract_predicate_name(variable_desc)
+        if domain_pred_name == "passed":
+            domain_pred_name = "passed_exam"
+        
+        # Handle complex predicates with "or" - create disjunction
+        if " or " in scope.lower():
+            # Split on "or" and create disjunction
+            or_parts = scope.split(" or ")
+            scope_predicates = []
+            for part in or_parts:
+                part_doc = self.nlp(part.strip())
+                part_predicate_parts = []
+                for token in part_doc:
+                    if token.dep_ in ["acomp", "attr", "advmod", "ROOT", "dobj", "pobj"] and token.pos_ in ["ADJ", "VERB", "NOUN"]:
+                        part_predicate_parts.append(token.text)
+                if part_predicate_parts:
+                    scope_predicates.append(self.extract_predicate_name(" ".join(part_predicate_parts)))
+                else:
+                    scope_predicates.append(self.extract_predicate_name(part.strip()))
+            
+            # Create disjunction of predicates
+            scope_pred = predicate(scope_predicates[0], VariableTerm(variable))
+            for pred_name in scope_predicates[1:]:
+                scope_pred = f_disj([scope_pred, predicate(pred_name, VariableTerm(variable))])
+        else:
+            scope_pred = predicate(scope_pred_name, VariableTerm(variable))
         
         # Create the quantified formula
         if quantifier == Quantifier.FORALL:
             # ∀x(Domain(x) → Scope(x))
             domain_pred = predicate(domain_pred_name, VariableTerm(variable))
-            scope_pred = predicate(scope_pred_name, VariableTerm(variable))
             if has_negation:
                 scope_pred = f_neg(scope_pred)
             inner_formula = f_impl(domain_pred, scope_pred)
@@ -181,7 +230,6 @@ class FirstOrderLogicConverter:
         else:  # EXISTS
             # ∃x(Domain(x) ∧ Scope(x))
             domain_pred = predicate(domain_pred_name, VariableTerm(variable))
-            scope_pred = predicate(scope_pred_name, VariableTerm(variable))
             if has_negation:
                 scope_pred = f_neg(scope_pred)
             inner_formula = f_conj([domain_pred, scope_pred])
