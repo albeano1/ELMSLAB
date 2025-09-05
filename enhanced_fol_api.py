@@ -2771,17 +2771,26 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
             
             # Check if today matches the recurring event day
             if current_day.lower() == recurring_event["day"].lower():
+                # Convert current_time to minutes for comparison
+                if isinstance(current_time, str):
+                    current_hour, current_minute = map(int, current_time.split(':'))
+                    current_total_minutes = current_hour * 60 + current_minute
+                    current_time_str = current_time
+                else:
+                    current_total_minutes = current_time
+                    current_time_str = f"{current_time // 60:02d}:{current_time % 60:02d}"
+                
                 reasoning_steps.append(f"Today is {current_day} - matches recurring event day")
                 reasoning_steps.append(f"Event scheduled for: {recurring_event['time_str']}")
-                reasoning_steps.append(f"Current time: {current_time // 60:02d}:{current_time % 60:02d}")
+                reasoning_steps.append(f"Current time: {current_time_str}")
                 
                 # Check if the event is happening now (within a reasonable time window)
-                time_diff = abs(current_time - recurring_event["time"])
+                time_diff = abs(current_total_minutes - recurring_event["time"])
                 
                 if time_diff <= 30:  # Within 30 minutes
                     answer = True
                     reasoning_steps.append(f"✅ Event is happening now (within 30 minutes of scheduled time)")
-                elif current_time >= recurring_event["time"]:
+                elif current_total_minutes >= recurring_event["time"]:
                     answer = False
                     reasoning_steps.append(f"❌ Event has already passed (scheduled for {recurring_event['time_str']})")
                 else:
@@ -3979,6 +3988,69 @@ def check_temporal_consistency(premises: List[str], query: str) -> Dict[str, Any
                 "temporal_formulas": temporal_formulas,
                 "reasoning_steps": reasoning_steps,
                 "inference": f"Duration reasoning: event duration is {duration_info['duration_text']}"
+            }
+        
+        # Paradox Detection: Check for temporal paradoxes and logical contradictions
+        paradox_detected = False
+        paradox_type = None
+        paradox_explanation = None
+        
+        # Check for grandfather paradox
+        if any("grandfather" in premise.lower() and "kill" in premise.lower() for premise in premises):
+            if any("born" in query.lower() or "exist" in query.lower() for query in [query]):
+                paradox_detected = True
+                paradox_type = "Grandfather Paradox"
+                paradox_explanation = "This scenario creates a temporal paradox: if you kill your grandfather before your mother is born, you wouldn't exist to kill him, creating a logical contradiction."
+        
+        # Check for other common temporal paradoxes
+        elif any("time travel" in premise.lower() for premise in premises):
+            if any("kill" in premise.lower() or "change" in premise.lower() or "prevent" in premise.lower() for premise in premises):
+                paradox_detected = True
+                paradox_type = "Temporal Paradox"
+                paradox_explanation = "Time travel scenarios involving changing past events often create logical paradoxes that cannot be resolved within standard temporal logic."
+        
+        # Check for self-prevention paradoxes
+        elif any("prevent" in premise.lower() and ("birth" in premise.lower() or "exist" in premise.lower()) for premise in premises):
+            if any("exist" in query.lower() or "born" in query.lower() for query in [query]):
+                paradox_detected = True
+                paradox_type = "Self-Prevention Paradox"
+                paradox_explanation = "If you prevent your own birth or existence, you wouldn't exist to prevent it, creating a logical contradiction."
+        
+        # Check for logical contradictions in temporal statements
+        elif any("if" in premise.lower() and "then" in premise.lower() for premise in premises):
+            # Look for contradictory implications
+            contradictory_premises = []
+            for i, premise in enumerate(premises):
+                if "if" in premise.lower() and "then" in premise.lower():
+                    # Extract the implication
+                    if_pos = premise.lower().find("if")
+                    then_pos = premise.lower().find("then")
+                    if if_pos < then_pos:
+                        antecedent = premise[if_pos + 2:then_pos].strip()
+                        consequent = premise[then_pos + 4:].strip()
+                        
+                        # Check if any other premise contradicts this
+                        for j, other_premise in enumerate(premises):
+                            if i != j:
+                                if antecedent.lower() in other_premise.lower() and "not" in other_premise.lower():
+                                    contradictory_premises.append((premise, other_premise))
+            
+            if contradictory_premises:
+                paradox_detected = True
+                paradox_type = "Logical Contradiction"
+                paradox_explanation = f"Contradictory premises detected: {contradictory_premises[0][0]} vs {contradictory_premises[0][1]}"
+        
+        if paradox_detected:
+            reasoning_steps.append("Paradox Detection:")
+            reasoning_steps.append(f"⚠️ {paradox_type} detected")
+            reasoning_steps.append(f"Explanation: {paradox_explanation}")
+            reasoning_steps.append("❌ This scenario creates a logical impossibility that cannot be resolved")
+            
+            return {
+                "answer": False,
+                "temporal_formulas": temporal_formulas,
+                "reasoning_steps": reasoning_steps,
+                "inference": f"Paradox detection: {paradox_type} - logical contradiction detected"
             }
         
         # Fallback for other temporal queries
