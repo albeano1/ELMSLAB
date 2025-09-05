@@ -541,6 +541,42 @@
             gap: 20px;
         }
         
+        .add-all-btn {
+            background-color: #27ae60;
+            font-size: 16px;
+            padding: 12px 24px;
+            width: auto;
+            margin: 10px 0;
+        }
+        
+        .add-all-btn:hover {
+            background-color: #229954;
+        }
+        
+        .facts-display {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+        }
+        
+        .fact-list-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+        
+        .fact-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .fact-number {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-right: 10px;
+        }
+        
         @media (max-width: 768px) {
             .two-column {
                 grid-template-columns: 1fr;
@@ -1041,6 +1077,54 @@ It is now 1pm</textarea>
             } catch (error) {
                 showResult(`Error: ${error.message}`, 'error');
             }
+        }
+        
+        async function addAllFacts(facts) {
+            if (!facts || facts.length === 0) {
+                showResult('No facts to add.', 'error');
+                return;
+            }
+            
+            showResult(`Adding ${facts.length} facts to knowledge base...`, 'loading');
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            for (let i = 0; i < facts.length; i++) {
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/knowledge/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fact: facts[i]
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`Fact ${i + 1}: HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`Fact ${i + 1}: ${error.message}`);
+                }
+            }
+            
+            if (errorCount === 0) {
+                showResult(`✅ Successfully added all ${successCount} facts to the knowledge base!`, 'success');
+            } else if (successCount > 0) {
+                showResult(`⚠️ Added ${successCount} facts successfully, but ${errorCount} failed. Errors: ${errors.join(', ')}`, 'loading');
+            } else {
+                showResult(`❌ Failed to add any facts. Errors: ${errors.join(', ')}`, 'error');
+            }
+            
+            // Refresh the facts display
+            loadAllFacts();
         }
         
         // Enhanced Temporal Logic functionality
@@ -1642,16 +1726,32 @@ It is now 1pm</textarea>
                 // Set the query
                 queryInput.value = scenario.query;
                 
-                // Add all facts to the knowledge base
+                // Display the facts with an "Add All Facts" button
+                let factsText = `<div class="facts-display">
+                    <h3>📋 Facts for this scenario:</h3>
+                    <div class="facts-list">`;
+                
                 for (let i = 0; i < scenario.facts.length; i++) {
-                    factInput.value = scenario.facts[i];
-                    await addFact();
-                    // Small delay between adding facts
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    factsText += `<div class="fact-list-item">
+                        <span class="fact-number">${i + 1}.</span>
+                        <span class="fact-text">${scenario.facts[i]}</span>
+                    </div>`;
                 }
                 
-                // Show success message
-                showResult(`✅ Added ${scenario.facts.length} facts for ${type.replace('_', ' ')} scenario. Query: "${scenario.query}" (Use Clear button to start fresh)`, 'success');
+                factsText += `</div>
+                    <div style="margin-top: 15px;">
+                        <strong>❓ Query:</strong> "${scenario.query}"
+                    </div>
+                    <button class="add-all-btn" onclick="addAllFacts([${scenario.facts.map(fact => `'${fact.replace(/'/g, "\\'")}'`).join(', ')}])">
+                        ➕ Add All ${scenario.facts.length} Facts
+                    </button>
+                </div>`;
+                
+                // Show the facts with the add all button
+                showResult(factsText, 'success');
+                
+                // Also display in the fact input for easy copying
+                factInput.value = scenario.facts[0]; // Set first fact as example
                 
                 // Refresh the facts display
                 loadAllFacts();
