@@ -1,0 +1,99 @@
+{
+  "facts": {
+    "fact_1": {
+      "id": "fact_1",
+      "text": "John is a doctor",
+      "parsed_statement": {
+        "original_text": "John is a doctor",
+        "formula": "john_is_a_doctor",
+        "logic_type": "propositional",
+        "confidence": 0.8,
+        "variables": [],
+        "constants": [],
+        "predicates": [],
+        "atoms": [
+          "john_is_a_doctor"
+        ],
+        "explanation": "98% accuracy fallback parsing for unrecognized pattern",
+        "vectionary_enhanced": false
+      },
+      "confidence": 0.95,
+      "source": "user",
+      "timestamp": "2025-10-07T18:25:18.383210",
+      "tags": [],
+      "related_facts": []
+    },
+    "fact_2": {
+      "id": "fact_2",
+      "text": "All doctors help patients",
+      "parsed_statement": {
+        "original_text": "All doctors help patients",
+        "formula": "all_doctors_help_patients",
+        "logic_type": "propositional",
+        "confidence": 0.8,
+        "variables": [],
+        "constants": [],
+        "predicates": [],
+        "atoms": [
+          "all_doctors_help_patients"
+        ],
+        "explanation": "98% accuracy fallback parsing for unrecognized pattern",
+        "vectionary_enhanced": false
+      },
+      "confidence": 0.95,
+      "source": "user",
+      "timestamp": "2025-10-07T18:25:22.427731",
+      "tags": [],
+      "related_facts": []
+    },
+    "fact_3": {
+      "id": "fact_3",
+      "text": "Mary is a patient",
+      "parsed_statement": {
+        "original_text": "Mary is a patient",
+        "formula": "mary_is_a_patient",
+        "logic_type": "propositional",
+        "confidence": 0.8,
+        "variables": [],
+        "constants": [],
+        "predicates": [],
+        "atoms": [
+          "mary_is_a_patient"
+        ],
+        "explanation": "98% accuracy fallback parsing for unrecognized pattern",
+        "vectionary_enhanced": false
+      },
+      "confidence": 0.95,
+      "source": "user",
+      "timestamp": "2025-10-07T18:35:38.304911",
+      "tags": [],
+      "related_facts": []
+    }
+  },
+  "fact_counter": 5,
+  "indexes": {
+    "predicates": {},
+    "constants": {},
+    "variables": {},
+    "atoms": {
+      "john_is_a_doctor": [
+        "fact_1"
+      ],
+      "all_doctors_help_patients": [
+        "fact_2"
+      ],
+      "mary_is_a_patient": [
+        "fact_3"
+      ],
+      "all_birds_can_fly": []
+    },
+    "temporal": {},
+    "logic_type": {
+      "propositional": [
+        "fact_3",
+        "fact_2",
+        "fact_1"
+      ]
+    }
+  }
+}

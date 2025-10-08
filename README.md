@@ -80,6 +80,10 @@ pip install -r requirements.txt
 
 # Install spaCy language model (if needed)
 python -m spacy download en_core_web_sm
+
+# Set up environment variables (for LLM integration)
+cp env.example .env
+# Edit .env file and add your Anthropic API key
 ```
 
 ### 2. Start the Enhanced API Server

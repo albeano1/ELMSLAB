@@ -1,1 +1,55 @@
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables and API keys
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# API Keys and secrets
+*api_key*
+*secret*
+*password*
+*token*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+api_debug.log
+
+# Test results
+test_results/
+llm_integration_test_results.json
+*_test_results.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp

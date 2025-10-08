@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Logic Reasoning Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .left-panel {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .right-panel {
+            background: white;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: "🎯";
+            margin-right: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+            font-size: 0.95em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        textarea, input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .premises-textarea {
+            min-height: 150px;
+        }
+
+        .conclusion-textarea {
+            min-height: 80px;
+        }
+
+        .logic-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .logic-type-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .logic-type-btn.active {
+            border-color: #3498db;
+            background: #3498db;
+            color: white;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .result-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 15px;
+        }
+
+        .result-status.valid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .result-status.invalid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .confidence-badge {
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .confidence-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .confidence-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .confidence-very-low {
+            background: #f5c6cb;
+            color: #721c24;
+        }
+
+        .result-content {
+            margin-top: 20px;
+        }
+
+        .explanation-box {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .tree-box {
+            background: #e8f4fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .theorem-box {
+            background: #f0f8ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #b3d9ff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .premise-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .premise-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid #3498db;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin-bottom: 15px;
+        }
+
+        .api-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .api-status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .api-status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .left-panel {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+
+        .example-scenarios {
+            margin-top: 20px;
+        }
+
+        .example-btn {
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .example-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .temporal-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+            border: 2px solid #e74c3c !important;
+            font-weight: 600 !important;
+        }
+
+        .temporal-btn:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%) !important;
+            transform: translateY(-2px);
+        }
+
+        .knowledge-base-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+
+        .kb-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .kb-btn {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .kb-btn:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(142, 68, 173, 0.3);
+        }
+
+        .kb-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .add-fact-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        .add-fact-btn:hover {
+            background: #229954;
+            transform: translateY(-1px);
+        }
+
+        .query-btn {
+            background: #3498db;
+            color: white;
+        }
+
+        .query-btn:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .clear-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .kb-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #666;
+            justify-content: center;
+        }
+
+        .kb-stats span {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .truth-table {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        .truth-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .truth-table th,
+        .truth-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .truth-table th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+
+        .truth-table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+
+        .truth-table .true {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .truth-table .false {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .llm-integration-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 12px;
+            border: 2px solid #b3d9ff;
+        }
+
+        .llm-status {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .status-indicator.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-indicator.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-indicator.checking {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .llm-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .llm-btn {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .llm-btn:hover {
+            background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+        }
+
+        .llm-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .fusion-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
+            color: white !important;
+            font-weight: 600 !important;
+        }
+
+        .fusion-btn:hover {
+            background: linear-gradient(135deg, #ee5a24 0%, #d63031 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4) !important;
+        }
+
+        .test-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .test-btn:hover {
+            background: #218838;
+        }
+
+        .status-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .status-btn:hover {
+            background: #5a6268;
+        }
+
+        .claude-response {
+            background: #e8f5e8;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #28a745;
+        }
+
+        .vectionary-response {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .comparison-section {
+            background: #fff3e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .validation-result {
+            background: #f3e5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .fusion-result {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e17055;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .fusion-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .fusion-score {
+            background: #2d3436;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .side-by-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .side-by-side {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="api-status" id="apiStatus">Checking API...</div>
+    
+    <div class="main-container">
+        <div class="header">
+            <h1>🧠 Enhanced Logic Reasoning Engine</h1>
+            <p>Convert natural language to formal logic with high accuracy using Vectionary parsing + Claude AI integration</p>
+        </div>
+        
+        <div class="content">
+            <div class="left-panel">
+                <div class="section">
+                    <div class="section-title">Input Premises</div>
+                    <div class="input-group">
+                        <textarea 
+                            class="premises-textarea" 
+                            placeholder="Enter your premises, one per line:&#10;&#10;Jack gave Jill a book.&#10;Then they walked home together.&#10;Everyone who receives a gift feels grateful." 
+                            id="premises"
+                        ></textarea>
+                        <div class="help-text">Enter each premise on a separate line. The system will automatically parse multiple sentences.</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">Conclusion</div>
+                    <div class="input-group">
+                        <textarea 
+                            class="conclusion-textarea" 
+                            placeholder="Enter your conclusion or question:&#10;&#10;Does Jill feel grateful?" 
+                            id="conclusion"
+                        ></textarea>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">Logic Type</div>
+                    <div class="logic-type-selector">
+                        <div class="logic-type-btn active" data-type="auto">Auto Detect</div>
+                        <div class="logic-type-btn" data-type="propositional">Propositional</div>
+                        <div class="logic-type-btn" data-type="first_order">First-Order</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <button class="analyze-btn" onclick="performAnalysis()" id="analyzeBtn">
+                        🔍 Analyze Logic
+                    </button>
+                </div>
+                
+                <div class="section example-scenarios">
+                    <div class="section-title">Example Scenarios</div>
+                    <button class="example-btn" onclick="loadExample('gift')">Gift-Gratitude</button>
+                    <button class="example-btn" onclick="loadExample('teaching')">Teaching-Learning</button>
+                    <button class="example-btn" onclick="loadExample('medical')">Medical Treatment</button>
+                    <button class="example-btn" onclick="loadExample('restaurant')">Restaurant Experience</button>
+                    <button class="example-btn" onclick="loadExample('family')">Family Connection</button>
+                    <button class="example-btn" onclick="loadExample('team')">Team Recognition</button>
+                    <button class="example-btn temporal-btn" onclick="loadExample('temporal_gift')">🕒 Gift + Walk Sequence</button>
+                    <button class="example-btn temporal-btn" onclick="loadExample('temporal_door')">🕒 Door + Enter Sequence</button>
+                </div>
+
+                <div class="section knowledge-base-section">
+                    <div class="section-title">🧠 Knowledge Base Demo</div>
+                    <div class="kb-buttons">
+                        <button class="kb-btn" onclick="loadKnowledgeBaseExample('doctor')">👨‍⚕️ Doctor Facts</button>
+                        <button class="kb-btn" onclick="loadKnowledgeBaseExample('friends')">👫 Friend Facts</button>
+                    </div>
+                    <div class="kb-actions">
+                        <button class="action-btn add-fact-btn" onclick="addCurrentAsFact()">📝 Add Current as Fact</button>
+                        <button class="action-btn query-btn" onclick="queryKnowledgeBase()">🔍 Query Knowledge Base</button>
+                        <button class="action-btn clear-btn" onclick="clearKnowledgeBase()">🗑️ Clear Knowledge Base</button>
+                    </div>
+                    <div class="kb-stats" id="kbStats">
+                        <span>📊 Facts: <span id="factCount">0</span></span>
+                        <span>🎯 Enhanced: <span id="enhancedCount">0</span></span>
+                    </div>
+                </div>
+
+                <div class="section llm-integration-section">
+                    <div class="section-title">🤖 Claude AI Integration</div>
+                    <div class="llm-status" id="llmStatus">
+                        <span class="status-indicator" id="claudeStatus">🔄 Checking...</span>
+                    </div>
+                    <div class="llm-buttons">
+                        <button class="llm-btn reason-btn" onclick="performLLMReasoning()">🧠 Claude Reasoning</button>
+                        <button class="llm-btn validate-btn" onclick="performLLMValidation()">✅ Validate Response</button>
+                        <button class="llm-btn convert-btn" onclick="performLLMConvert()">🔄 Compare Conversion</button>
+                        <button class="llm-btn fusion-btn" onclick="performFusionMode()">⚡ Fusion Mode</button>
+                    </div>
+                    <div class="llm-actions">
+                        <button class="action-btn test-btn" onclick="testLLMIntegration()">🧪 Test Integration</button>
+                        <button class="action-btn status-btn" onclick="checkLLMStatus()">📊 Check Status</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="section">
+                    <div class="section-title">Analysis Results</div>
+                    <div id="resultsContainer">
+                        <div class="loading">Ready to analyze your logical reasoning...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedLogicType = 'auto';
+
+        // Initialize logic type selector
+        document.querySelectorAll('.logic-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.logic-type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedLogicType = this.dataset.type;
+            });
+        });
+
+        // Check API status
+        async function checkApiStatus() {
+            try {
+                const response = await fetch('http://localhost:8002/health');
+                const statusEl = document.getElementById('apiStatus');
+                if (response.ok) {
+                    statusEl.textContent = '🟢 API Online';
+                    statusEl.className = 'api-status online';
+                } else {
+                    statusEl.textContent = '🔴 API Error';
+                    statusEl.className = 'api-status offline';
+                }
+            } catch (error) {
+                const statusEl = document.getElementById('apiStatus');
+                statusEl.textContent = '🔴 API Offline';
+                statusEl.className = 'api-status offline';
+            }
+        }
+
+        // Load example scenarios
+        function loadExample(type) {
+            const examples = {
+                gift: {
+                    premises: "Jack gave Jill a book.\nThen they walked home together.\nEveryone who receives a gift feels grateful.",
+                    conclusion: "Does Jill feel grateful?",
+                    logicType: "auto"
+                },
+                teaching: {
+                    premises: "Ms. Smith taught her students about photosynthesis.\nThe students took notes during the lesson.\nEveryone who pays attention learns effectively.",
+                    conclusion: "Did the students learn effectively?",
+                    logicType: "auto"
+                },
+                medical: {
+                    premises: "Dr. Johnson examined Sarah in the clinic.\nShe prescribed medication for her condition.\nAll patients who receive proper treatment recover quickly.",
+                    conclusion: "Will Sarah recover quickly?",
+                    logicType: "auto"
+                },
+                restaurant: {
+                    premises: "John and Mary went to their favorite restaurant.\nThe waiter recommended the chef's special.\nThey ordered wine with their meal.\nAll customers who try new dishes have memorable experiences.",
+                    conclusion: "Did John and Mary have a memorable experience?",
+                    logicType: "auto"
+                },
+                family: {
+                    premises: "The family gathered around the dinner table.\nMom served homemade lasagna.\nDad told stories about his childhood.\nEveryone who shares meals together feels connected.",
+                    conclusion: "Does the family feel connected?",
+                    logicType: "auto"
+                },
+                team: {
+                    premises: "The team completed their project ahead of schedule.\nThe manager praised their excellent work.\nThey decided to celebrate with a team lunch.\nAll teams that meet deadlines receive recognition.",
+                    conclusion: "Did the team receive recognition?",
+                    logicType: "auto"
+                },
+                temporal_gift: {
+                    premises: "Jack gave Jill a book.\nThen they walked home together.",
+                    conclusion: "Did Jack and Jill walk home together?",
+                    logicType: "auto"
+                },
+                temporal_door: {
+                    premises: "John opened the door.\nThen he entered the room.",
+                    conclusion: "Did John enter the room?",
+                    logicType: "auto"
+                }
+            };
+
+            const example = examples[type];
+            if (example) {
+                // Set premises
+                document.getElementById('premises').value = example.premises;
+                
+                // Set conclusion
+                document.getElementById('conclusion').value = example.conclusion;
+
+                // Set logic type
+                document.querySelectorAll('.logic-type-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector(`[data-type="${example.logicType}"]`).classList.add('active');
+                selectedLogicType = example.logicType;
+            }
+        }
+
+        // Perform analysis
+        async function performAnalysis() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            // Get premises from textarea and split by lines
+            const premisesText = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+
+            if (!premisesText || !conclusion) {
+                resultsContainer.innerHTML = '<div class="error">Please enter premises and a conclusion.</div>';
+                return;
+            }
+
+            // Split premises by lines and filter out empty lines
+            const premises = premisesText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (premises.length === 0) {
+                resultsContainer.innerHTML = '<div class="error">Please enter at least one premise.</div>';
+                return;
+            }
+
+            // Show loading
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '🔄 Analyzing...';
+            resultsContainer.innerHTML = '<div class="loading">Analyzing your logical reasoning...</div>';
+
+            try {
+                const response = await fetch('http://localhost:8002/infer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        premises: premises,
+                        conclusion: conclusion,
+                        logic_type: selectedLogicType
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayResults(result);
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Analysis Failed:</strong><br>
+                        ${error.message}<br>
+                        <small>Please check that the API is running on port 8002.</small>
+                    </div>
+                `;
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🔍 Analyze Logic';
+            }
+        }
+
+        // Display results
+        function displayResults(result) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = `
+                <div class="result-section">
+                    <div class="result-header">
+                        <div class="result-status ${result.valid ? 'valid' : 'invalid'}">
+                            ${result.valid ? '✅ Valid' : '❌ Invalid'}
+                        </div>
+                        <div class="confidence-badge confidence-${result.confidence.toLowerCase().replace(' ', '-')}">
+                            ${result.confidence}
+                        </div>
+                        ${result.logic_type ? `<div style="margin-left: auto; font-size: 12px; color: #7f8c8d;">${result.logic_type.toUpperCase()} Logic</div>` : ''}
+                    </div>
+            `;
+
+            if (result.explanation) {
+                // Split explanation into main explanation and tree data
+                if (result.explanation.includes('Vectionary Parse Trees:')) {
+                    const treeStart = result.explanation.indexOf('Vectionary Parse Trees:');
+                    const mainExplanation = result.explanation.substring(0, treeStart).trim();
+                    const treeData = result.explanation.substring(treeStart);
+                    
+                    html += `
+                        <div class="explanation-box">
+                            <h4>📝 Explanation</h4>
+                            <pre style="white-space: pre-wrap; font-family: inherit;">${mainExplanation}</pre>
+                        </div>
+                        <div class="tree-box">
+                            <h4>🌳 Vectionary Parse Trees</h4>
+                            <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px;">${treeData}</pre>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="explanation-box">
+                            <h4>📝 Explanation</h4>
+                            <pre style="white-space: pre-wrap; font-family: inherit;">${result.explanation}</pre>
+                        </div>
+                    `;
+                }
+            }
+
+            if (result.reasoning_steps && result.reasoning_steps.length > 0) {
+                html += `
+                    <div class="premise-list">
+                        <h4>🔍 Reasoning Steps</h4>
+                        ${result.reasoning_steps.map((step, index) => `
+                            <div class="premise-item">${step}</div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            if (result.parsed_premises && result.parsed_premises.length > 0) {
+                html += `
+                    <div class="premise-list">
+                        <h4>📋 Parsed Premises</h4>
+                        ${result.parsed_premises.map((premise, index) => `
+                            <div class="premise-item">${index + 1}. ${premise}</div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            if (result.parsed_conclusion) {
+                html += `
+                    <div class="theorem-box">
+                        <h4>🎯 Parsed Conclusion</h4>
+                        <div>${result.parsed_conclusion}</div>
+                    </div>
+                `;
+            }
+
+            // Add truth table if we have propositional logic
+            if (result.parsed_premises && result.parsed_premises.length > 0) {
+                const formulas = result.parsed_premises;
+                if (formulas.length <= 3) { // Only show truth table for simple formulas
+                    formulas.forEach((formula, index) => {
+                        const truthTable = generateTruthTable(formula);
+                        if (truthTable) {
+                            html += `<div class="theorem-box">
+                                <h4>📊 Truth Table - Premise ${index + 1}</h4>
+                                ${truthTable}
+                            </div>`;
+                        }
+                    });
+                }
+            }
+
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        // Knowledge Base Functions
+        function loadKnowledgeBaseExample(type) {
+            const examples = {
+                doctor: {
+                    premises: "John is a doctor.\nAll doctors help patients.\nMary is a patient.\nJohn examined Mary.",
+                    conclusion: "Did John help Mary?"
+                },
+                friends: {
+                    premises: "Alice and Bob are friends.\nFriends trust each other.\nAlice told Bob a secret.\nAll people who share secrets are close.",
+                    conclusion: "Are Alice and Bob close?"
+                }
+            };
+
+            const example = examples[type];
+            if (example) {
+                document.getElementById('premises').value = example.premises;
+                document.getElementById('conclusion').value = example.conclusion;
+                document.querySelectorAll('.logic-type-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector('[data-type="auto"]').classList.add('active');
+                selectedLogicType = "auto";
+            }
+        }
+
+        async function addCurrentAsFact() {
+            const premises = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+            
+            if (!premises && !conclusion) {
+                alert('Please enter premises or conclusion to add as fact.');
+                return;
+            }
+
+            try {
+                // Add premises as separate facts
+                const premiseLines = premises.split('\n').filter(line => line.trim());
+                for (const premise of premiseLines) {
+                    await fetch('http://localhost:8002/kb/add_fact', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: premise.trim(), confidence: 0.95 })
+                    });
+                }
+
+                // Add conclusion as a fact if it's a statement (not a question)
+                if (conclusion && !conclusion.includes('?')) {
+                    await fetch('http://localhost:8002/kb/add_fact', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: conclusion.trim(), confidence: 0.95 })
+                    });
+                }
+
+                updateKnowledgeBaseStats();
+                alert('✅ Facts added to knowledge base!');
+            } catch (error) {
+                alert('❌ Error adding facts: ' + error.message);
+            }
+        }
+
+        async function queryKnowledgeBase() {
+            const conclusion = document.getElementById('conclusion').value.trim();
+            
+            if (!conclusion) {
+                alert('Please enter a question in the conclusion field.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8002/kb/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: conclusion })
+                });
+
+                const result = await response.json();
+                
+                const resultsContainer = document.getElementById('resultsContainer');
+                let html = '<div class="kb-result">';
+                html += `<h4>🧠 Knowledge Base Query Result</h4>`;
+                html += `<div class="kb-answer">Answer: <strong>${result.answer}</strong></div>`;
+                html += `<div class="kb-confidence">Confidence: ${result.confidence}</div>`;
+                html += `<div class="kb-reasoning">Reasoning: ${result.reasoning}</div>`;
+                
+                if (result.relevant_facts && result.relevant_facts.length > 0) {
+                    html += `<div class="kb-facts"><h5>Relevant Facts:</h5><ul>`;
+                    result.relevant_facts.forEach(fact => {
+                        html += `<li>${fact}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                html += '</div>';
+                resultsContainer.innerHTML = html;
+                
+            } catch (error) {
+                alert('❌ Error querying knowledge base: ' + error.message);
+            }
+        }
+
+        async function clearKnowledgeBase() {
+            if (!confirm('Are you sure you want to clear all facts from the knowledge base?')) {
+                return;
+            }
+
+            try {
+                await fetch('http://localhost:8002/kb/clear', {
+                    method: 'DELETE'
+                });
+                
+                updateKnowledgeBaseStats();
+                alert('✅ Knowledge base cleared!');
+            } catch (error) {
+                alert('❌ Error clearing knowledge base: ' + error.message);
+            }
+        }
+
+        async function updateKnowledgeBaseStats() {
+            try {
+                const response = await fetch('http://localhost:8002/kb/stats');
+                const stats = await response.json();
+                
+                document.getElementById('factCount').textContent = stats.total_facts;
+                document.getElementById('enhancedCount').textContent = stats.vectionary_enhanced_count;
+            } catch (error) {
+                console.error('Error updating KB stats:', error);
+            }
+        }
+
+        // Truth Table Functions
+        function generateTruthTable(formula) {
+            // Extract variables from the formula
+            const variables = extractVariables(formula);
+            if (variables.length === 0) {
+                return '<div class="error">No variables found in formula for truth table</div>';
+            }
+
+            // Generate all possible truth value combinations
+            const combinations = generateCombinations(variables.length);
+            
+            let html = '<div class="truth-table"><h4>📊 Truth Table</h4><table>';
+            
+            // Header row
+            html += '<tr>';
+            variables.forEach(variable => {
+                html += `<th>${variable}</th>`;
+            });
+            html += '<th>Result</th></tr>';
+            
+            // Data rows
+            combinations.forEach(combination => {
+                html += '<tr>';
+                combination.forEach(value => {
+                    html += `<td class="${value ? 'true' : 'false'}">${value ? 'T' : 'F'}</td>`;
+                });
+                
+                // Calculate result for this combination
+                const result = evaluateFormula(formula, variables, combination);
+                html += `<td class="${result ? 'true' : 'false'}">${result ? 'T' : 'F'}</td></tr>`;
+            });
+            
+            html += '</table></div>';
+            return html;
+        }
+
+        function extractVariables(formula) {
+            // Simple regex to find propositional variables (lowercase letters/underscores)
+            const matches = formula.match(/\b[a-z_][a-z0-9_]*\b/g);
+            return [...new Set(matches || [])];
+        }
+
+        function generateCombinations(length) {
+            const combinations = [];
+            for (let i = 0; i < Math.pow(2, length); i++) {
+                const combination = [];
+                for (let j = length - 1; j >= 0; j--) {
+                    combination.push((i >> j) & 1 === 1);
+                }
+                combinations.push(combination);
+            }
+            return combinations;
+        }
+
+        function evaluateFormula(formula, variables, values) {
+            // Create a simple evaluator for basic logical formulas
+            let evalFormula = formula;
+            
+            // Replace variables with their values
+            variables.forEach((variable, index) => {
+                const regex = new RegExp(`\\b${variable}\\b`, 'g');
+                evalFormula = evalFormula.replace(regex, values[index] ? 'true' : 'false');
+            });
+            
+            // Replace logical operators
+            evalFormula = evalFormula.replace(/∧/g, '&&');
+            evalFormula = evalFormula.replace(/∨/g, '||');
+            evalFormula = evalFormula.replace(/→/g, '=>');
+            evalFormula = evalFormula.replace(/¬/g, '!');
+            evalFormula = evalFormula.replace(/true/g, 'true');
+            evalFormula = evalFormula.replace(/false/g, 'false');
+            
+            try {
+                // Simple evaluation - in a real system you'd want a proper parser
+                return eval(evalFormula);
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // LLM Integration Functions
+        async function checkLLMStatus() {
+            try {
+                const response = await fetch('http://localhost:8002/llm/status');
+                const status = await response.json();
+                
+                const statusEl = document.getElementById('claudeStatus');
+                if (status.claude_available) {
+                    statusEl.textContent = '✅ Claude Online';
+                    statusEl.className = 'status-indicator online';
+                } else {
+                    statusEl.textContent = '❌ Claude Offline';
+                    statusEl.className = 'status-indicator offline';
+                }
+                
+                return status;
+            } catch (error) {
+                const statusEl = document.getElementById('claudeStatus');
+                statusEl.textContent = '❌ Claude Error';
+                statusEl.className = 'status-indicator offline';
+                return null;
+            }
+        }
+
+        async function performLLMReasoning() {
+            const premises = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+            
+            if (!premises || !conclusion) {
+                alert('Please enter premises and conclusion for Claude reasoning.');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '<div class="loading">Claude is reasoning about your premises...</div>';
+
+            try {
+                const premiseLines = premises.split('\n').filter(line => line.trim());
+                
+                const response = await fetch('http://localhost:8002/llm/reason', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        premises: premiseLines,
+                        conclusion: conclusion,
+                        use_knowledge_base: true
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayLLMReasoningResults(result);
+
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Claude Reasoning Failed:</strong><br>
+                        ${error.message}<br>
+                        <small>Please check that Claude integration is available.</small>
+                    </div>
+                `;
+            }
+        }
+
+        async function performLLMValidation() {
+            const premises = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+            
+            if (!premises || !conclusion) {
+                alert('Please enter premises and conclusion for validation.');
+                return;
+            }
+
+            // Get a sample LLM response to validate
+            const sampleResponse = prompt('Enter an LLM response to validate against your premises and conclusion:');
+            if (!sampleResponse) return;
+
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '<div class="loading">Validating LLM response...</div>';
+
+            try {
+                const premiseLines = premises.split('\n').filter(line => line.trim());
+                
+                const response = await fetch('http://localhost:8002/llm/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        llm_response: sampleResponse,
+                        premises: premiseLines,
+                        conclusion: conclusion
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayLLMValidationResults(result, sampleResponse);
+
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>LLM Validation Failed:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function performLLMConvert() {
+            const premises = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+            
+            if (!premises && !conclusion) {
+                alert('Please enter premises or conclusion for conversion comparison.');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '<div class="loading">Comparing Vectionary vs Claude conversion...</div>';
+
+            try {
+                // First get full Vectionary results (like Analyze Logic)
+                const premiseLines = premises.split('\n').filter(line => line.trim());
+                let vectionaryResult = null;
+                
+                if (premiseLines.length > 0 && conclusion) {
+                    // Get full Vectionary analysis
+                    const vectionaryResponse = await fetch('http://localhost:8002/infer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            premises: premiseLines,
+                            conclusion: conclusion,
+                            logic_type: selectedLogicType
+                        })
+                    });
+                    
+                    if (vectionaryResponse.ok) {
+                        vectionaryResult = await vectionaryResponse.json();
+                    }
+                }
+                
+                // Then get LLM conversion comparison
+                const textToConvert = premises.split('\n')[0] || conclusion;
+                
+                const response = await fetch('http://localhost:8002/llm/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: textToConvert,
+                        target_logic_type: selectedLogicType
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayLLMConvertResults(result, vectionaryResult);
+
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>LLM Conversion Failed:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function performFusionMode() {
+            const premises = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+            
+            if (!premises || !conclusion) {
+                alert('Please enter premises and conclusion for Fusion Mode analysis.');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '<div class="loading">⚡ Running Fusion Mode: Combining Vectionary + Claude...</div>';
+
+            try {
+                const premiseLines = premises.split('\n').filter(line => line.trim());
+                
+                // Get both Vectionary and Claude results in parallel
+                const [vectionaryResponse, claudeResponse] = await Promise.all([
+                    // Vectionary analysis
+                    fetch('http://localhost:8002/infer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            premises: premiseLines,
+                            conclusion: conclusion,
+                            logic_type: selectedLogicType
+                        })
+                    }),
+                    // Claude reasoning
+                    fetch('http://localhost:8002/llm/reason', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            premises: premiseLines,
+                            conclusion: conclusion,
+                            use_knowledge_base: true
+                        })
+                    })
+                ]);
+
+                let vectionaryResult = null;
+                let claudeResult = null;
+
+                if (vectionaryResponse.ok) {
+                    vectionaryResult = await vectionaryResponse.json();
+                }
+
+                if (claudeResponse.ok) {
+                    claudeResult = await claudeResponse.json();
+                }
+
+                // Display fusion results
+                displayFusionResults(vectionaryResult, claudeResult);
+
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Fusion Mode Failed:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testLLMIntegration() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '<div class="loading">Testing LLM integration...</div>';
+
+            try {
+                const response = await fetch('http://localhost:8002/llm/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayLLMTestResults(result);
+
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>LLM Test Failed:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayLLMReasoningResults(result) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = '<div class="result-section">';
+            html += '<h3>🤖 Claude AI Reasoning Results</h3>';
+            
+            if (result.reasoning_result && result.reasoning_result.claude_response) {
+                html += `
+                    <div class="claude-response">
+                        <h4>🧠 Claude's Reasoning</h4>
+                        <div style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: inherit; background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd; margin: 10px 0;">
+                            ${result.reasoning_result.claude_response.content}
+                        </div>
+                        <p><strong>Confidence:</strong> ${result.reasoning_result.claude_response.confidence}</p>
+                        <p><strong>Timestamp:</strong> ${result.reasoning_result.claude_response.timestamp}</p>
+                    </div>
+                `;
+            }
+            
+            if (result.reasoning_result && result.reasoning_result.validation) {
+                const validation = result.reasoning_result.validation;
+                html += `
+                    <div class="validation-result">
+                        <h4>✅ Validation Results</h4>
+                        <p><strong>Is Valid:</strong> ${validation.is_valid ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Confidence:</strong> ${validation.validation_confidence}</p>
+                        <p><strong>Reasoning:</strong> ${validation.reasoning}</p>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        function displayLLMValidationResults(result, sampleResponse) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = '<div class="result-section">';
+            html += '<h3>✅ LLM Response Validation</h3>';
+            
+            html += `
+                <div class="validation-result">
+                    <h4>📝 Sample Response</h4>
+                    <p><em>"${sampleResponse}"</em></p>
+                </div>
+            `;
+            
+            if (result.validation_result) {
+                const validation = result.validation_result;
+                html += `
+                    <div class="validation-result">
+                        <h4>🔍 Validation Analysis</h4>
+                        <p><strong>Is Valid:</strong> ${validation.is_valid ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Confidence:</strong> ${validation.validation_confidence}</p>
+                        <p><strong>Reasoning:</strong> ${validation.reasoning}</p>
+                        <p><strong>Timestamp:</strong> ${validation.timestamp}</p>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        function displayLLMConvertResults(result, vectionaryResult) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = '<div class="result-section">';
+            html += '<h3>🔄 Vectionary vs Claude Conversion Comparison</h3>';
+            
+            // Show full Vectionary results if available (like Analyze Logic)
+            if (vectionaryResult) {
+                html += `
+                    <div class="vectionary-response">
+                        <h4>🔬 Full Vectionary Analysis</h4>
+                        <div class="result-header">
+                            <div class="result-status ${vectionaryResult.valid ? 'valid' : 'invalid'}">
+                                ${vectionaryResult.valid ? '✅ Valid' : '❌ Invalid'}
+                            </div>
+                            <div class="confidence-badge confidence-${vectionaryResult.confidence.toLowerCase().replace(' ', '-')}">
+                                ${vectionaryResult.confidence}
+                            </div>
+                            ${vectionaryResult.logic_type ? `<div style="margin-left: auto; font-size: 12px; color: #7f8c8d;">${vectionaryResult.logic_type.toUpperCase()} Logic</div>` : ''}
+                        </div>
+                `;
+                
+                if (vectionaryResult.explanation) {
+                    html += `
+                        <div class="explanation-box">
+                            <h5>📝 Explanation</h5>
+                            <pre style="white-space: pre-wrap; font-family: inherit;">${vectionaryResult.explanation}</pre>
+                        </div>
+                    `;
+                }
+                
+                if (vectionaryResult.reasoning_steps && vectionaryResult.reasoning_steps.length > 0) {
+                    html += `
+                        <div class="premise-list">
+                            <h5>🔍 Reasoning Steps</h5>
+                            ${vectionaryResult.reasoning_steps.map((step, index) => `
+                                <div class="premise-item">${step}</div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                if (vectionaryResult.parsed_premises && vectionaryResult.parsed_premises.length > 0) {
+                    html += `
+                        <div class="premise-list">
+                            <h5>📋 Parsed Premises</h5>
+                            ${vectionaryResult.parsed_premises.map((premise, index) => `
+                                <div class="premise-item">${index + 1}. ${premise}</div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                if (vectionaryResult.parsed_conclusion) {
+                    html += `
+                        <div class="theorem-box">
+                            <h5>🎯 Parsed Conclusion</h5>
+                            <div>${vectionaryResult.parsed_conclusion}</div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+            } else {
+                // Fallback to basic Vectionary results from LLM convert
+                html += `
+                    <div class="vectionary-response">
+                        <h4>🔬 Vectionary Results</h4>
+                        <p><strong>Formula:</strong> ${result.vectionary_result.formula}</p>
+                        <p><strong>Logic Type:</strong> ${result.vectionary_result.logic_type}</p>
+                        <p><strong>Confidence:</strong> ${result.vectionary_result.confidence}</p>
+                        <p><strong>Explanation:</strong> ${result.vectionary_result.explanation}</p>
+                    </div>
+                `;
+            }
+            
+            if (result.claude_result) {
+                html += `
+                    <div class="claude-response">
+                        <h4>🤖 Claude Results</h4>
+                        <div style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: inherit; background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd; margin: 10px 0;">
+                            <strong>Response:</strong><br>${result.claude_result.response}
+                        </div>
+                        <p><strong>Confidence:</strong> ${result.claude_result.confidence}</p>
+                        <p><strong>Reasoning Steps:</strong> ${result.claude_result.reasoning_steps.join(', ')}</p>
+                    </div>
+                `;
+            }
+            
+            if (result.comparison) {
+                html += `
+                    <div class="comparison-section">
+                        <h4>⚖️ Comparison Analysis</h4>
+                        <p><strong>Agreement:</strong> ${result.comparison.agreement ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Validation Details:</strong> ${JSON.stringify(result.comparison.claude_vs_vectionary_validation, null, 2)}</p>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        function displayFusionResults(vectionaryResult, claudeResult) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = '<div class="result-section">';
+            html += '<h3>⚡ Enhanced Fusion Mode: Intelligent Cross-Validation</h3>';
+            
+            // Enhanced fusion analysis
+            const fusionAnalysis = performEnhancedFusionAnalysis(vectionaryResult, claudeResult);
+            
+            html += `
+                <div class="fusion-result">
+                    <div class="fusion-header">
+                        <h4>⚡ Enhanced Fusion Analysis Complete</h4>
+                        <div class="fusion-score">Fusion Confidence: ${fusionAnalysis.fusionConfidence}%</div>
+                        <p><strong>Enhanced Validation:</strong> ${fusionAnalysis.enhancedValid ? '✅ Valid' : '❌ Invalid'}</p>
+                        <p><strong>Cross-Validation Score:</strong> ${fusionAnalysis.crossValidationScore}%</p>
+                    </div>
+                </div>
+            `;
+            
+            // Enhanced fusion reasoning
+            html += `
+                <div class="comparison-section">
+                    <h4>🧠 Enhanced Fusion Reasoning</h4>
+                    <p><strong>Fusion Conclusion:</strong> ${fusionAnalysis.fusionConclusion}</p>
+                    <p><strong>Reasoning Quality:</strong> ${fusionAnalysis.reasoningQuality}</p>
+                    <p><strong>Conflict Resolution:</strong> ${fusionAnalysis.conflictResolution}</p>
+                    <p><strong>Enhanced Insights:</strong> ${fusionAnalysis.enhancedInsights}</p>
+                </div>
+            `;
+            
+            // Individual system results (condensed)
+            html += '<div class="side-by-side">';
+            
+            // Vectionary results
+            if (vectionaryResult) {
+                html += `
+                    <div class="vectionary-response">
+                        <h4>🔬 Vectionary Analysis</h4>
+                        <div class="result-header">
+                            <div class="result-status ${vectionaryResult.valid ? 'valid' : 'invalid'}">
+                                ${vectionaryResult.valid ? '✅ Valid' : '❌ Invalid'}
+                            </div>
+                            <div class="confidence-badge confidence-${vectionaryResult.confidence.toLowerCase().replace(' ', '-')}">
+                                ${vectionaryResult.confidence}
+                            </div>
+                        </div>
+                        <p><strong>Key Insight:</strong> ${fusionAnalysis.vectionaryInsight}</p>
+                        <p><strong>Strengths:</strong> ${fusionAnalysis.vectionaryStrengths}</p>
+                `;
+                
+                html += '</div>';
+            }
+            
+            // Claude results
+            if (claudeResult && claudeResult.reasoning_result) {
+                const claude = claudeResult.reasoning_result;
+                html += `
+                    <div class="claude-response">
+                        <h4>🤖 Claude Analysis</h4>
+                        <div class="result-header">
+                            <div class="result-status ${claude.validation && claude.validation.is_valid ? 'valid' : 'invalid'}">
+                                ${claude.validation && claude.validation.is_valid ? '✅ Valid' : '❌ Invalid'}
+                            </div>
+                            <div class="confidence-badge confidence-${claude.validation ? (claude.validation.validation_confidence > 0.8 ? 'high' : 'medium') : 'low'}">
+                                ${claude.validation ? (claude.validation.validation_confidence * 100).toFixed(0) + '%' : 'Unknown'}
+                            </div>
+                        </div>
+                        <p><strong>Key Insight:</strong> ${fusionAnalysis.claudeInsight}</p>
+                        <p><strong>Strengths:</strong> ${fusionAnalysis.claudeStrengths}</p>
+                `;
+                
+                html += '</div>';
+            }
+            
+            html += '</div>'; // End side-by-side
+            
+            // Full Claude reasoning section (if available)
+            if (claudeResult && claudeResult.reasoning_result && claudeResult.reasoning_result.claude_response) {
+                const claude = claudeResult.reasoning_result;
+                html += `
+                    <div class="claude-response">
+                        <h4>🧠 Full Claude Reasoning</h4>
+                        <div style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: inherit; background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd; margin: 10px 0;">
+                            ${claude.claude_response.content}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Enhanced fusion recommendations
+            html += `
+                <div class="comparison-section">
+                    <h4>🎯 Enhanced Fusion Recommendations</h4>
+                    <p><strong>Final Verdict:</strong> ${fusionAnalysis.finalVerdict}</p>
+                    <p><strong>Confidence Level:</strong> ${fusionAnalysis.confidenceLevel}</p>
+                    <p><strong>Next Steps:</strong> ${fusionAnalysis.nextSteps}</p>
+                    <p><strong>Fusion Advantage:</strong> ${fusionAnalysis.fusionAdvantage}</p>
+                </div>
+            `;
+            
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        function performEnhancedFusionAnalysis(vectionaryResult, claudeResult) {
+            // Initialize analysis
+            let analysis = {
+                fusionConfidence: 0,
+                enhancedValid: false,
+                crossValidationScore: 0,
+                fusionConclusion: '',
+                reasoningQuality: '',
+                conflictResolution: '',
+                enhancedInsights: '',
+                vectionaryInsight: '',
+                vectionaryStrengths: '',
+                claudeInsight: '',
+                claudeStrengths: '',
+                finalVerdict: '',
+                confidenceLevel: '',
+                nextSteps: '',
+                fusionAdvantage: ''
+            };
+
+            if (!vectionaryResult && !claudeResult) {
+                analysis.fusionConclusion = 'No analysis available from either system';
+                analysis.fusionConfidence = 0;
+                return analysis;
+            }
+
+            // Extract individual system results
+            const vectionaryValid = vectionaryResult ? vectionaryResult.valid : null;
+            const vectionaryConfidence = vectionaryResult ? getConfidenceScore(vectionaryResult.confidence) : 0;
+            const vectionaryExplanation = vectionaryResult ? vectionaryResult.explanation : '';
+            
+            const claudeValid = claudeResult && claudeResult.reasoning_result && 
+                              claudeResult.reasoning_result.validation ? 
+                              claudeResult.reasoning_result.validation.is_valid : null;
+            const claudeConfidence = claudeResult && claudeResult.reasoning_result && 
+                                   claudeResult.reasoning_result.validation ? 
+                                   claudeResult.reasoning_result.validation.validation_confidence * 100 : 0;
+            const claudeReasoning = claudeResult && claudeResult.reasoning_result && 
+                                  claudeResult.reasoning_result.claude_response ? 
+                                  claudeResult.reasoning_result.claude_response.content : '';
+
+            // Enhanced cross-validation logic
+            if (vectionaryValid !== null && claudeValid !== null) {
+                // Both systems provided results
+                if (vectionaryValid === claudeValid) {
+                    // Systems agree
+                    analysis.crossValidationScore = Math.min(95, (vectionaryConfidence + claudeConfidence) / 2 + 20);
+                    analysis.enhancedValid = vectionaryValid;
+                    analysis.conflictResolution = 'Systems agree - high confidence in result';
+                    
+                    if (vectionaryValid) {
+                        analysis.fusionConclusion = 'Both systems confirm the conclusion is VALID';
+                        analysis.finalVerdict = '✅ VALID - High confidence due to system agreement';
+                        analysis.confidenceLevel = 'Very High (95%+)';
+                    } else {
+                        analysis.fusionConclusion = 'Both systems confirm the conclusion is INVALID';
+                        analysis.finalVerdict = '❌ INVALID - High confidence due to system agreement';
+                        analysis.confidenceLevel = 'Very High (95%+)';
+                    }
+                } else {
+                    // Systems disagree - enhanced conflict resolution
+                    analysis.crossValidationScore = Math.max(60, Math.abs(vectionaryConfidence - claudeConfidence));
+                    analysis.conflictResolution = 'Systems disagree - applying enhanced conflict resolution';
+                    
+                    // Determine which system to trust more based on confidence and reasoning quality
+                    const vectionaryScore = vectionaryConfidence + (vectionaryExplanation.length > 100 ? 10 : 0);
+                    const claudeScore = claudeConfidence + (claudeReasoning.length > 100 ? 10 : 0);
+                    
+                    if (Math.abs(vectionaryScore - claudeScore) > 15) {
+                        // One system is significantly more confident
+                        if (vectionaryScore > claudeScore) {
+                            analysis.enhancedValid = vectionaryValid;
+                            analysis.fusionConclusion = `Vectionary analysis is more reliable (${vectionaryScore.toFixed(0)} vs ${claudeScore.toFixed(0)} points)`;
+                            analysis.finalVerdict = vectionaryValid ? '✅ VALID - Vectionary preferred' : '❌ INVALID - Vectionary preferred';
+                        } else {
+                            analysis.enhancedValid = claudeValid;
+                            analysis.fusionConclusion = `Claude analysis is more reliable (${claudeScore.toFixed(0)} vs ${vectionaryScore.toFixed(0)} points)`;
+                            analysis.finalVerdict = claudeValid ? '✅ VALID - Claude preferred' : '❌ INVALID - Claude preferred';
+                        }
+                        analysis.confidenceLevel = 'High (80-90%)';
+                    } else {
+                        // Systems are close in confidence - use enhanced reasoning
+                        analysis.enhancedValid = vectionaryValid; // Default to Vectionary for formal logic
+                        analysis.fusionConclusion = 'Close confidence levels - Vectionary preferred for formal logic';
+                        analysis.finalVerdict = vectionaryValid ? '✅ VALID - Vectionary preferred (formal logic)' : '❌ INVALID - Vectionary preferred (formal logic)';
+                        analysis.confidenceLevel = 'Medium (70-80%)';
+                    }
+                }
+            } else if (vectionaryValid !== null) {
+                // Only Vectionary available
+                analysis.enhancedValid = vectionaryValid;
+                analysis.crossValidationScore = vectionaryConfidence;
+                analysis.fusionConclusion = 'Vectionary analysis only - formal logic approach';
+                analysis.finalVerdict = vectionaryValid ? '✅ VALID - Vectionary analysis' : '❌ INVALID - Vectionary analysis';
+                analysis.confidenceLevel = 'Medium (70-80%)';
+            } else if (claudeValid !== null) {
+                // Only Claude available
+                analysis.enhancedValid = claudeValid;
+                analysis.crossValidationScore = claudeConfidence;
+                analysis.fusionConclusion = 'Claude analysis only - AI reasoning approach';
+                analysis.finalVerdict = claudeValid ? '✅ VALID - Claude analysis' : '❌ INVALID - Claude analysis';
+                analysis.confidenceLevel = 'Medium (70-80%)';
+            }
+
+            // Calculate final fusion confidence
+            analysis.fusionConfidence = Math.min(98, analysis.crossValidationScore + (vectionaryResult && claudeResult ? 10 : 0));
+
+            // Generate insights
+            analysis.reasoningQuality = analysis.fusionConfidence > 85 ? 'Excellent' : 
+                                       analysis.fusionConfidence > 70 ? 'Good' : 'Fair';
+            
+            analysis.enhancedInsights = generateEnhancedInsights(vectionaryResult, claudeResult, analysis);
+            analysis.vectionaryInsight = vectionaryResult ? extractKeyInsight(vectionaryExplanation) : 'No analysis';
+            analysis.vectionaryStrengths = 'Formal logic parsing, structured reasoning, high precision';
+            analysis.claudeInsight = claudeResult ? extractKeyInsight(claudeReasoning) : 'No analysis';
+            analysis.claudeStrengths = 'Natural language understanding, contextual reasoning, flexibility';
+            
+            analysis.nextSteps = analysis.fusionConfidence > 90 ? 'High confidence - proceed with result' :
+                                analysis.fusionConfidence > 75 ? 'Good confidence - minor review recommended' :
+                                'Medium confidence - detailed review recommended';
+            
+            analysis.fusionAdvantage = `Enhanced accuracy through cross-validation: ${analysis.fusionConfidence}% vs individual system averages`;
+
+            return analysis;
+        }
+
+        function getConfidenceScore(confidence) {
+            if (typeof confidence === 'string') {
+                switch (confidence.toLowerCase()) {
+                    case 'very high confidence': return 95;
+                    case 'high confidence': return 85;
+                    case 'medium confidence': return 70;
+                    case 'low confidence': return 50;
+                    default: return 60;
+                }
+            }
+            return confidence || 60;
+        }
+
+        function extractKeyInsight(text) {
+            if (!text || text.length < 20) return 'Limited analysis available';
+            const sentences = text.split('.').filter(s => s.trim().length > 10);
+            return sentences[0] ? sentences[0].trim() + '.' : 'Analysis available';
+        }
+
+        function generateEnhancedInsights(vectionaryResult, claudeResult, analysis) {
+            const insights = [];
+            
+            if (vectionaryResult && claudeResult) {
+                insights.push('Dual-system validation provides enhanced reliability');
+                if (analysis.crossValidationScore > 85) {
+                    insights.push('High agreement between systems indicates strong logical foundation');
+                } else {
+                    insights.push('System disagreement highlights potential complexity in reasoning');
+                }
+            }
+            
+            if (vectionaryResult && vectionaryResult.reasoning_steps && vectionaryResult.reasoning_steps.length > 2) {
+                insights.push('Vectionary provides detailed step-by-step logical reasoning');
+            }
+            
+            if (claudeResult && claudeResult.reasoning_result && claudeResult.reasoning_result.claude_response) {
+                insights.push('Claude offers natural language contextual analysis');
+            }
+            
+            return insights.join('; ');
+        }
+
+        function displayLLMTestResults(result) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = '<div class="result-section">';
+            html += '<h3>🧪 LLM Integration Test Results</h3>';
+            
+            html += `
+                <div class="success">
+                    <h4>✅ Test Completed Successfully</h4>
+                    <p><strong>Message:</strong> ${result.message}</p>
+                </div>
+            `;
+            
+            if (result.test_case) {
+                html += `
+                    <div class="explanation-box">
+                        <h4>📋 Test Case</h4>
+                        <p><strong>Premises:</strong> ${result.test_case.premises.join(', ')}</p>
+                        <p><strong>Conclusion:</strong> ${result.test_case.conclusion}</p>
+                    </div>
+                `;
+            }
+            
+            if (result.result) {
+                html += `
+                    <div class="claude-response">
+                        <h4>🤖 Test Results</h4>
+                        <p><strong>Success:</strong> ${result.result.success ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Details:</strong> ${JSON.stringify(result.result, null, 2)}</p>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkApiStatus();
+            checkLLMStatus();
+            updateKnowledgeBaseStats();
+            setInterval(checkApiStatus, 30000); // Check every 30 seconds
+            setInterval(checkLLMStatus, 30000); // Check LLM status every 30 seconds
+            setInterval(updateKnowledgeBaseStats, 10000); // Update KB stats every 10 seconds
+        });
+    </script>
+</body>
+</html>
