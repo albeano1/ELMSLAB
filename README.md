@@ -1,6 +1,12 @@
+<div align="center">
+
+![ELMS Logo](ELMS.svg)
+
 # ELMS - Enhanced Logic Modeling System
 
 A hybrid logical reasoning system powered by Vectionary semantic parsing and Prolog inference.
+
+</div>
 
 
 ### Prerequisites
