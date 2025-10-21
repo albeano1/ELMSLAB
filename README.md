@@ -1,5 +1,7 @@
 # ELMS - Enhanced Logic Modeling System
 
+A hybrid logical reasoning system powered by Vectionary semantic parsing and Prolog inference.
+
 
 ### Prerequisites
 
@@ -7,6 +9,9 @@
 # Install dependencies
 pip install -r requirements.txt
 
+# Copy environment template
+cp env.example .env.local
+# Edit .env.local and add your actual API keys
 
 ### CLI Usage
 
@@ -14,94 +19,91 @@ pip install -r requirements.txt
 # Basic example
 python3 ELMS.py "Bob walks. Does Bob walk?" --env prod
 
-# Complex reasoning
-python3 ELMS.py "A lighthouse shines whenever night falls. Tonight, the sky is full of stars. Is the lighthouse shining?" --env prod
+# Open-ended question (draw conclusions)
+python3 ELMS.py "Maria is a student. John is a student. Maria studies regularly. Who are students?" --env prod
+
+# Debug mode (see behind-the-scenes)
+python3 ELMS.py "All cats are mammals. Fluffy is a cat. What mammals do we have?" --env prod --debug
 
 # JSON output
 python3 ELMS.py "Jack gave Jill a book. Does Jill have the book?" --env prod --json
-
-# Query knowledge base (no premises required)
-python3 ELMS.py "Is John a doctor?" --env prod
 ```
 
-### Web UI
+### Web Demo
 
 ```bash
 # Start the API server
 source venv/bin/activate
-python3 serv_vectionary.py &
+uvicorn serv_vectionary:app --host 0.0.0.0 --port 8002 --reload &
 
-# Open browser to webdemo.html
-open webdemo.html
+# Start the web server
+python3 -m http.server 8000 &
+
+# Open browser
+open http://localhost:8000/webdemo.html
 ```
 
-## Architecture
 
+
+## Architecture
 
 ```
 User Input
     ↓
 Vectionary API → Semantic Trees (lemmas, roles, marks, definitions)
     ↓
-Formula Generation → predicate(args) from tree data
+Dynamic Conversion → Convert NL to Prolog facts and rules
     ↓
-Tree-Based Reasoning → Match using tree lemmas, roles, marks
+Prolog Inference → Query Prolog knowledge base
     ↓
-Formal Theorem → With pronoun resolution & temporal markers
+Results → Formatted answer with explanation
 ```
 
 ### Core Files
 
-**CLI (Independent):**
-- `ELMS.py` - **Fully independent CLI** with built-in parsing, reasoning, and API client
-  - Contains complete Vectionary integration
-  - No dependencies on other project files
-  - Can be used standalone
+**CLI:**
+- `ELMS.py` - Main CLI with Vectionary parsing and Prolog inference
+  - Dynamic NL to Prolog conversion
+  - Open-ended question detection
+  - Debug mode with tree visualization
 
-**Web (Shared Backend):**
-- `vectionary_98_api.py` - FastAPI web server
-- `vectionary_98_percent_solution.py` - Backend reasoning engine (used by web API)
-- `logic_ui_final.html` - Web user interface
+**Hybrid Reasoning:**
+- `hybrid_reasoner.py` - Prolog + Vectionary integration
+- `prolog_reasoner.py` - Prolog inference engine (pytholog wrapper)
 
-**Knowledge Base:**
+**Web Demo:**
+- `serv_vectionary.py` - FastAPI server for web demo
+- `webdemo.html` - Interactive web interface
+
+**Integration:**
+- `claude_integration.py` - Claude API integration (optional)
 - `vectionary_knowledge_base.py` - Knowledge base management
 - `vectionary_knowledge_base.json` - Knowledge base data
 
 **Reference:**
-- `vectionary.py` - API reference implementation
-
-**Testing:**
-- `tests/` - Test suite
-- `test_edge_cases.sh` - Edge case testing script
+- `vectionaryref.py` - Vectionary API reference implementation
 
 ## Examples
 
-### Simple Direct Matching
+### Open-ended Questions
 ```bash
-Input: "Bob walks. Does Bob walk?"
-Output: Valid (tree lemma matching)
-Theorem: walk(Bob) → walk(Bob)
+Input: "Maria is a student. John is a student. Maria studies regularly. Who are students?"
+Output: John and Maria
+Prolog: student(X)
 ```
 
-### Universal Quantifiers
+### Universal Quantification
 ```bash
-Input: "All birds can fly. Tweety is a bird. Can Tweety fly?"
-Output: Valid (universal instantiation)
-Theorem: ∀x(bird(x) → fly(x)) ∧ bird(Tweety) → fly(Tweety)
+Input: "All cats are mammals. Fluffy is a cat. Whiskers is a cat. What mammals do we have?"
+Output: Fluffy, Whiskers
+Prolog: mammal(X) :- cat(X), cat(fluffy), cat(whiskers)
 ```
 
-### Conditional Reasoning
+### Compound Predicates
 ```bash
-Input: "A lighthouse shines whenever night falls. Tonight, the sky is full of stars. Is the lighthouse shining?"
-Output: Valid (conditional reasoning with temporal markers)
-Theorem: ∀x(fall(night) → shine(lighthouse)) ∧ be(sky, stars) → shine(lighthouse)
-```
-
-### Temporal & Pronouns
-```bash
-Input: "John opened the door. Then he entered the room. Did John enter the room?"
-Output: Valid (pronoun resolution + temporal markers)
-Theorem: (open(John, door) ∧ [then] enter(John, room)) → enter(John, room)
+Input: "Alice teaches mathematics. Bob teaches science. Alice has many students. Who are teachers with many students?"
+Output: Alice
+Prolog: teacher(X), has_many_students(X)
 ```
 
 ## API Environments
@@ -110,24 +112,35 @@ Theorem: (open(John, door) ∧ [then] enter(John, room)) → enter(John, room)
 - `--env dev` - Development API endpoint
 - `--env local` - Local Vectionary server
 
-## Reasoning Strategies
+## Dynamic Conversion
 
-The system uses **3 tree-based strategies** (no hardcoding):
+The system uses **Vectionary semantic parsing** to dynamically convert natural language to Prolog:
 
-1. **Universal Reasoning** - Matches tree lemmas and semantic roles
-2. **Conditional Reasoning** - Uses tree marks for temporal/conditional logic
-3. **Direct Matching** - Compares premise and conclusion trees
+1. **Premises** → Prolog facts and rules
+   - "X is a Y" → `y(x)`
+   - "X is Y of Z" → `y(x, z)`
+   - "All X are Y" → `y(Z) :- x(Z)`
+   - "X does Y" → `do_y(x)`
+   - "X does Y Z-ly" → `do_y_z(x)`
 
+2. **Queries** → Prolog queries
+   - "Who are X?" → `x(X)`
+   - "Who are X who Y?" → `x(X), y(X)`
+   - "What X do we have?" → `x(X)`
 
-**Zero text pattern matching** (`if 'word' in text`)
+3. **Open-ended Detection** → Uses POS tags and dependency labels
+   - Question pronouns (who, what, which)
+   - Relative clauses
+   - No hardcoded word lists
 
-## Web Features
+## Debug Mode
 
-- **Result Caching** - Instant mode switching between analysis types
-- **Formal Theorems** - Displays actual theorems, not placeholders
-- **Parse Trees** - Shows full Vectionary semantic trees
-- **Semantic Analysis** - Displays definitions and roles
-- **Claude Integration** - Compare with Claude's reasoning (if configured)
+Use `--debug` flag to see all behind-the-scenes steps:
+
+```bash
+python3 ELMS.py "Maria is a student. Who are students?" --env prod --debug
+```
+
 
 
 
@@ -160,19 +173,20 @@ If you encounter rate limits:
 ### Project Structure
 ```
 ELMSLAB/
-├── ELMS.py                              # Standalone CLI (fully independent)
-├── vectionary_98_api.py                 # Web API server
-├── vectionary_98_percent_solution.py    # Backend for web (not used by CLI)
-├── logic_ui_final.html                  # Web UI
+├── ELMS.py                              # Main CLI
+├── hybrid_reasoner.py                   # Prolog + Vectionary integration
+├── prolog_reasoner.py                   # Prolog inference engine
+├── serv_vectionary.py                   # FastAPI server
+├── webdemo.html                         # Web UI
+├── claude_integration.py                # Claude API integration
 ├── vectionary_knowledge_base.py         # Knowledge base
 ├── vectionary_knowledge_base.json       # KB data
-├── vectionary.py                        # API reference
+├── vectionaryref.py                     # Vectionary API reference
 ├── requirements.txt                     # Dependencies
 ├── env.example                          # Config template
+├── .env.local                           # Local config (gitignored)
 ├── tests/                               # Test suite
-│   ├── __init__.py
-│   ├── test_edge_cases.py
-│   └── README.md
+│   └── test_edge_cases.py
 └── venv/                                # Virtual environment
 ```
 
