@@ -3395,48 +3395,80 @@ Examples:
             # Handle comma-separated queries (conjunctions)
             # Only split on commas that are outside of parentheses (i.e., between predicates)
             if ',' in prolog_query and 'X' in prolog_query:
-                # Count parentheses to determine if comma is inside or outside
+                # Try to split the query into multiple predicates
+                # This is a more robust parser that handles nested parentheses
                 parts = []
                 current_part = ""
                 paren_count = 0
-                for char in prolog_query:
+                bracket_count = 0
+                
+                for i, char in enumerate(prolog_query):
                     if char == '(':
                         paren_count += 1
                         current_part += char
                     elif char == ')':
                         paren_count -= 1
                         current_part += char
-                    elif char == ',' and paren_count == 0:
-                        # This comma is between predicates
-                        parts.append(current_part.strip())
+                    elif char == '[':
+                        bracket_count += 1
+                        current_part += char
+                    elif char == ']':
+                        bracket_count -= 1
+                        current_part += char
+                    elif char == ',' and paren_count == 0 and bracket_count == 0:
+                        # This comma is between predicates (not inside parentheses or brackets)
+                        if current_part.strip():
+                            parts.append(current_part.strip())
                         current_part = ""
                     else:
                         current_part += char
+                
                 # Add the last part
                 if current_part.strip():
                     parts.append(current_part.strip())
-                # Query each part separately and find the intersection
-                all_results = []
-                for part in parts:
-                    part_success, part_results = prolog_reasoner.query(part)
-                    if part_success and part_results:
-                        all_results.append(part_results)
                 
-                # Find the intersection of all results
-                if len(all_results) > 1:
-                    # Get all values from the first query
-                    first_values = [list(r.values())[0] for r in all_results[0]]
-                    # Filter to only include values that appear in all queries
-                    for result_set in all_results[1:]:
-                        result_values = [list(r.values())[0] for r in result_set]
-                        first_values = [v for v in first_values if v in result_values]
+                # Only split if we found multiple valid parts
+                if len(parts) > 1:
+                    # Validate that each part is a valid Prolog predicate
+                    valid_parts = []
+                    for part in parts:
+                        # Check if part looks like a predicate (has opening and closing parens)
+                        if '(' in part and ')' in part:
+                            # Count parens to ensure they're balanced
+                            part_paren_count = part.count('(') - part.count(')')
+                            if part_paren_count == 0:
+                                valid_parts.append(part)
                     
-                    # Create result dictionaries
-                    results = [{'result': val} for val in first_values]
-                    success = len(results) > 0
+                    # If we have valid parts, query each separately and find intersection
+                    if len(valid_parts) > 1:
+                        all_results = []
+                        for part in valid_parts:
+                            part_success, part_results = prolog_reasoner.query(part)
+                            if part_success and part_results:
+                                all_results.append(part_results)
+                        
+                        # Find the intersection of all results
+                        if len(all_results) > 1:
+                            # Get all values from the first query
+                            first_values = [list(r.values())[0] for r in all_results[0]]
+                            # Filter to only include values that appear in all queries
+                            for result_set in all_results[1:]:
+                                result_values = [list(r.values())[0] for r in result_set]
+                                first_values = [v for v in first_values if v in result_values]
+                            
+                            # Create result dictionaries
+                            results = [{'result': val} for val in first_values]
+                            success = len(results) > 0
+                        else:
+                            success, results = True, all_results[0] if all_results else []
+                    else:
+                        # Fallback: try the query as-is
+                        success, results = prolog_reasoner.query(prolog_query)
                 else:
-                    success, results = True, all_results[0] if all_results else []
+                    # Fallback: try the query as-is
+                    success, results = prolog_reasoner.query(prolog_query)
             else:
+                # No comma or no variable - query directly
                 success, results = prolog_reasoner.query(prolog_query)
             
             # Calculate elapsed time

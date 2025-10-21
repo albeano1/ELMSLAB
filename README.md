@@ -38,9 +38,9 @@ python3 ELMS.py "Jack gave Jill a book. Does Jill have the book?" --env prod --j
 ### Web Demo
 
 ```bash
-# Start the API server
+# activate the env
 source venv/bin/activate
-uvicorn serv_vectionary:app --host 0.0.0.0 --port 8002 --reload &
+
 
 # Start the web server
 python3 -m http.server 8000 &

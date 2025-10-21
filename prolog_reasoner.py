@@ -71,6 +71,10 @@ class PrologReasoner:
             # Convert results to a more readable format
             formatted_results = []
             if results:
+                # Check if results is 'No' (no solutions found)
+                if results == ['No']:
+                    return True, []
+                
                 for result in results:
                     if isinstance(result, dict):
                         formatted_results.append(result)
