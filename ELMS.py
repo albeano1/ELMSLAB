@@ -2862,6 +2862,25 @@ def _convert_nl_to_prolog(premise: str, parser: VectionaryParser = None) -> Opti
         # Extract main predicate and arguments
         lemma = tree.get('lemma', '').lower()
         children = tree.get('children', [])
+        pos = tree.get('pos', '')
+        dependency = tree.get('dependency', '')
+        
+        # Handle case where Vectionary parses with object as root (e.g., "Alice" in "Mary is parent of Alice")
+        # Check if root is a proper noun with POBJ dependency
+        if pos == 'PROP' and dependency == 'ROOT':
+            # Look for a noun child with POBJ dependency (the relationship word like "parent")
+            for child in children:
+                child_lemma = child.get('lemma', '').lower()
+                child_pos = child.get('pos', '')
+                child_dependency = child.get('dependency', '')
+                
+                # If we find a noun with POBJ dependency, this is "X is Y of Z" pattern
+                if child_pos == 'NOUN' and child_dependency == 'POBJ':
+                    # The relationship word is the child, the root is the object
+                    # We need to find the subject (Mary) - it should be in the tree somewhere
+                    # For now, return None to let it fall through to other handlers
+                    # This is a known Vectionary API inconsistency
+                    pass
         
         # Extract semantic roles dynamically
         roles = {}
@@ -2897,21 +2916,37 @@ def _convert_nl_to_prolog(premise: str, parser: VectionaryParser = None) -> Opti
             
             # Handle "X is a Y" - look for subject and attribute/object/theme
             subject = roles.get('agent') or roles.get('subject')
-            predicate = roles.get('patient') or roles.get('object') or roles.get('attribute') or roles.get('theme')
+            # For copula verbs, the predicate is usually the theme/attribute, not the patient/object
+            predicate = roles.get('theme') or roles.get('attribute') or roles.get('object') or roles.get('patient')
             
             # Check if the predicate has children with a patient or modifier role (e.g., "Mary is parent of Alice")
             if subject and predicate:
-                # Look for children of the predicate with a patient or modifier role
+                # Look for children with POBJ dependency (object of preposition "of")
                 for child in children:
                     child_lemma = child.get('lemma', '').lower()
                     child_role = child.get('role', '')
-                    if child_role == 'theme' or child_role == 'attribute':
+                    child_pos = child.get('pos', '')
+                    child_dependency = child.get('dependency', '')
+                    
+                    # Check if child is a proper noun with POBJ dependency (Alice in "parent of Alice")
+                    # This is the object of the preposition "of"
+                    if child_pos == 'PROP' and child_dependency == 'POBJ':
+                        # This is "X is Y of Z" pattern -> Y(X, Z)
+                        predicate = predicate.rstrip('s') if predicate.endswith('s') else predicate
+                        return f"{predicate}({subject}, {child_lemma})"
+                    
+                    # Check if this is the predicate (attribute/theme) and has children
+                    if child_role in ['theme', 'attribute'] and child.get('children'):
                         # This child is the predicate, check if it has a patient or modifier child
                         child_children = child.get('children', [])
                         for grandchild in child_children:
                             grandchild_role = grandchild.get('role', '')
                             grandchild_lemma = grandchild.get('lemma', '').lower()
-                            if grandchild_role in ['patient', 'modifier']:
+                            grandchild_pos = grandchild.get('pos', '')
+                            grandchild_dependency = grandchild.get('dependency', '')
+                            
+                            # Check for patient, modifier, or object of preposition (POBJ)
+                            if grandchild_role in ['patient', 'modifier'] or grandchild_dependency == 'POBJ':
                                 # This is "X is Y of Z" pattern -> Y(X, Z)
                                 predicate = child_lemma.rstrip('s') if child_lemma.endswith('s') else child_lemma
                                 return f"{predicate}({subject}, {grandchild_lemma})"
