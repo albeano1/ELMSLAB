@@ -1,2 +1,0 @@
-# ELMS Test Suite
-

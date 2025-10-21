@@ -1,8 +1,6 @@
 """
 Claude API Integration for Enhanced Logic Reasoning
 
-This module integrates Anthropic's Claude API with the ELMS logic system
-to validate LLM responses against formal logic and provide reasoning validation.
 """
 
 import os
@@ -14,10 +12,11 @@ from dataclasses import dataclass
 from datetime import datetime
 import logging
 
-# Try to load environment variables from .env file
+# Try to load environment variables from .env.local or .env file
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # Try .env.local first (for local development), then .env
+    load_dotenv('.env.local') or load_dotenv('.env')
 except ImportError:
     # dotenv not available, continue without it
     pass
@@ -70,9 +69,9 @@ class ClaudeIntegration:
         
         # Import our logic system components
         try:
-            from vectionary_98_percent_solution import Vectionary98PercentSolution
+            from vectionary_solution import VectionarySolution
             from vectionary_knowledge_base import VectionaryKnowledgeBase
-            self.vectionary_engine = Vectionary98PercentSolution()
+            self.vectionary_engine = VectionarySolution()
             self.knowledge_base = VectionaryKnowledgeBase()
         except ImportError as e:
             logger.warning(f"Could not import Vectionary components: {e}")
@@ -162,7 +161,7 @@ class ClaudeIntegration:
         try:
             # Step 1: Convert LLM response to logic using Vectionary
             if self.vectionary_engine:
-                parsed_response = self.vectionary_engine.parse_with_vectionary_98(llm_response)
+                parsed_response = self.vectionary_engine.parse_with_vectionary(llm_response)
                 llm_logic = parsed_response.formula
                 llm_confidence = parsed_response.confidence
             else:
@@ -172,8 +171,8 @@ class ClaudeIntegration:
             
             # Step 2: Convert premises and conclusion to logic
             if self.vectionary_engine:
-                parsed_premises = [self.vectionary_engine.parse_with_vectionary_98(p) for p in premises]
-                parsed_conclusion = self.vectionary_engine.parse_with_vectionary_98(conclusion)
+                parsed_premises = [self.vectionary_engine.parse_with_vectionary(p) for p in premises]
+                parsed_conclusion = self.vectionary_engine.parse_with_vectionary(conclusion)
                 
                 premise_formulas = [p.formula for p in parsed_premises]
                 conclusion_formula = parsed_conclusion.formula

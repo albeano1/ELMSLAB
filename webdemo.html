@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Logic Reasoning Engine</title>
+    <title>Enhanced Logic Modelling System</title>
     <style>
         * {
             margin: 0;
@@ -80,7 +80,7 @@
         }
 
         .section-title::before {
-            content: "🎯";
+            content: "";
             margin-right: 10px;
         }
 
@@ -711,8 +711,8 @@
     
     <div class="main-container">
         <div class="header">
-            <h1>🧠 Enhanced Logic Reasoning Engine</h1>
-            <p>Convert natural language to formal logic with high accuracy using Vectionary parsing + Claude AI integration</p>
+            <h1>ELMS Labs</h1>
+            <p1>Enhanced Logic Modelling System</p1>
         </div>
         
         <div class="content">
@@ -750,9 +750,20 @@
                 </div>
                 
                 <div class="section">
-                    <button class="analyze-btn" onclick="performAnalysis()" id="analyzeBtn">
-                        🔍 Analyze Logic
+                    <button class="analyze-btn" onclick="performUnifiedAnalysis()" id="unifiedBtn">
+                        🔍 Analyze Logic / Draw Conclusions
                     </button>
+                    <div class="help-text" style="margin-top: 8px; font-size: 12px; color: #7f8c8d;">
+                        💡 Automatically detects verification (yes/no) or inference (open-ended) questions
+                    </div>
+                </div>
+                
+                <div class="section open-ended-examples">
+                    <div class="section-title">🎯 Open-Ended Questions</div>
+                    <button class="example-btn" onclick="loadOpenEndedExample('mammals')">What mammals do we have?</button>
+                    <button class="example-btn" onclick="loadOpenEndedExample('ancestors')">Who are John's descendants?</button>
+                    <button class="example-btn" onclick="loadOpenEndedExample('students')">Who are successful students?</button>
+                    <button class="example-btn" onclick="loadOpenEndedExample('children')">Who are Mary's children?</button>
                 </div>
                 
                 <div class="section example-scenarios">
@@ -763,41 +774,41 @@
                     <button class="example-btn" onclick="loadExample('restaurant')">Restaurant Experience</button>
                     <button class="example-btn" onclick="loadExample('family')">Family Connection</button>
                     <button class="example-btn" onclick="loadExample('team')">Team Recognition</button>
-                    <button class="example-btn temporal-btn" onclick="loadExample('temporal_gift')">🕒 Gift + Walk Sequence</button>
-                    <button class="example-btn temporal-btn" onclick="loadExample('temporal_door')">🕒 Door + Enter Sequence</button>
+                    <button class="example-btn temporal-btn" onclick="loadExample('temporal_gift')"> Gift + Walk Sequence</button>
+                    <button class="example-btn temporal-btn" onclick="loadExample('temporal_door')"> Door + Enter Sequence</button>
                 </div>
 
                 <div class="section knowledge-base-section">
-                    <div class="section-title">🧠 Knowledge Base Demo</div>
+                    <div class="section-title"> Knowledge Base Demo</div>
                     <div class="kb-buttons">
-                        <button class="kb-btn" onclick="loadKnowledgeBaseExample('doctor')">👨‍⚕️ Doctor Facts</button>
-                        <button class="kb-btn" onclick="loadKnowledgeBaseExample('friends')">👫 Friend Facts</button>
+                        <button class="kb-btn" onclick="loadKnowledgeBaseExample('doctor')"> Doctor Facts</button>
+                        <button class="kb-btn" onclick="loadKnowledgeBaseExample('friends')"> Friend Facts</button>
                     </div>
                     <div class="kb-actions">
-                        <button class="action-btn add-fact-btn" onclick="addCurrentAsFact()">📝 Add Current as Fact</button>
-                        <button class="action-btn query-btn" onclick="queryKnowledgeBase()">🔍 Query Knowledge Base</button>
-                        <button class="action-btn clear-btn" onclick="clearKnowledgeBase()">🗑️ Clear Knowledge Base</button>
+                        <button class="action-btn add-fact-btn" onclick="addCurrentAsFact()"> Add Current as Fact</button>
+                        <button class="action-btn query-btn" onclick="queryKnowledgeBase()"> Query Knowledge Base</button>
+                        <button class="action-btn clear-btn" onclick="clearKnowledgeBase()"> Clear Knowledge Base</button>
                     </div>
                     <div class="kb-stats" id="kbStats">
-                        <span>📊 Facts: <span id="factCount">0</span></span>
-                        <span>🎯 Enhanced: <span id="enhancedCount">0</span></span>
+                        <span> Facts: <span id="factCount">0</span></span>
+                        <span> Enhanced: <span id="enhancedCount">0</span></span>
                     </div>
                 </div>
 
                 <div class="section llm-integration-section">
-                    <div class="section-title">🤖 Claude AI Integration</div>
+                    <div class="section-title"> Claude AI Integration</div>
                     <div class="llm-status" id="llmStatus">
                         <span class="status-indicator" id="claudeStatus">🔄 Checking...</span>
                     </div>
                     <div class="llm-buttons">
-                        <button class="llm-btn reason-btn" onclick="performLLMReasoning()">🧠 Claude Reasoning</button>
-                        <button class="llm-btn validate-btn" onclick="performLLMValidation()">✅ Validate Response</button>
-                        <button class="llm-btn convert-btn" onclick="performLLMConvert()">🔄 Compare Conversion</button>
+                        <button class="llm-btn reason-btn" onclick="performLLMReasoning()"> Claude Reasoning</button>
+                        <button class="llm-btn validate-btn" onclick="performLLMValidation()"> Validate Response</button>
+                        <button class="llm-btn convert-btn" onclick="performLLMConvert()"> Compare Conversion</button>
                         <button class="llm-btn fusion-btn" onclick="performFusionMode()">⚡ Fusion Mode</button>
                     </div>
                     <div class="llm-actions">
-                        <button class="action-btn test-btn" onclick="testLLMIntegration()">🧪 Test Integration</button>
-                        <button class="action-btn status-btn" onclick="checkLLMStatus()">📊 Check Status</button>
+                        <button class="action-btn test-btn" onclick="testLLMIntegration()"> Test Integration</button>
+                        <button class="action-btn status-btn" onclick="checkLLMStatus()"> Check Status</button>
                     </div>
                 </div>
             </div>
@@ -815,6 +826,27 @@
 
     <script>
         let selectedLogicType = 'auto';
+        
+        // Analysis cache to avoid reloading when switching modes
+        const analysisCache = {
+            lastPremises: '',
+            lastConclusion: '',
+            lastResult: null,
+            claudeResult: null,
+            timestamp: null
+        };
+        
+        // Generate cache key from premises and conclusion
+        function getCacheKey(premises, conclusion) {
+            return `${premises}|||${conclusion}`;
+        }
+        
+        // Check if current input matches cached analysis
+        function hasCachedAnalysis(premises, conclusion) {
+            const currentKey = getCacheKey(premises, conclusion);
+            const cachedKey = getCacheKey(analysisCache.lastPremises, analysisCache.lastConclusion);
+            return currentKey === cachedKey && analysisCache.lastResult !== null;
+        }
 
         // Initialize logic type selector
         document.querySelectorAll('.logic-type-btn').forEach(btn => {
@@ -904,17 +936,92 @@
             }
         }
 
-        // Perform analysis
-        async function performAnalysis() {
+        // Load open-ended question examples
+        function loadOpenEndedExample(type) {
+            const examples = {
+                mammals: {
+                    premises: "All cats are mammals.\nFluffy is a cat.\nWhiskers is a cat.\nTweety is a cat.",
+                    conclusion: "What mammals do we have?",
+                    description: "What mammals do we have?"
+                },
+                ancestors: {
+                    premises: "John is parent of Mary.\nMary is parent of Alice.\nAlice is parent of Bob.",
+                    conclusion: "Who are John's descendants?",
+                    description: "Who are John's descendants?"
+                },
+                students: {
+                    premises: "Maria is a student.\nJohn is a student.\nMaria studies regularly.\nJohn studies occasionally.\nMaria improves grades.",
+                    conclusion: "Who are successful students?",
+                    description: "Who are successful students?"
+                },
+                children: {
+                    premises: "Mary is parent of Alice.\nMary is parent of Bob.\nMary is parent of Charlie.",
+                    conclusion: "Who are Mary's children?",
+                    description: "Who are Mary's children?"
+                }
+            };
+
+            const example = examples[type];
+            if (example) {
+                // Clear cache to ensure fresh results
+                analysisCache.lastPremises = '';
+                analysisCache.lastConclusion = '';
+                analysisCache.lastResult = null;
+                analysisCache.timestamp = null;
+                
+                // Set premises
+                document.getElementById('premises').value = example.premises;
+                
+                // Set conclusion
+                document.getElementById('conclusion').value = example.conclusion;
+                
+                // Show info without alert - just update the info message
+                const infoMsg = document.getElementById('infoMessage');
+                if (infoMsg) {
+                    infoMsg.innerHTML = `<span style="color: #4CAF50;">✅ Loaded: ${example.description}</span><br><small>Click "🔍 Analyze Logic / Draw Conclusions" to see the answers!</small>`;
+                    setTimeout(() => {
+                        if (infoMsg) infoMsg.innerHTML = '';
+                    }, 5000);
+                }
+            }
+        }
+
+        // Detect if question is open-ended using dynamic pattern analysis
+        function isOpenEndedQuestion(question) {
+            const questionLower = question.toLowerCase().trim();
+            
+            // Check if question starts with question words (dynamic - any word starting with 'w' or 'h')
+            const words = questionLower.split(/\s+/);
+            if (words.length > 0) {
+                const firstWord = words[0];
+                // Check if first word is likely a question word (pronoun-like)
+                if (firstWord.length > 1 && (firstWord.startsWith('w') || firstWord.startsWith('h'))) {
+                    return true;
+                }
+            }
+            
+            // Check if question contains question words but no verification verbs
+            // Use simple heuristics instead of hardcoded lists
+            const hasQuestionWord = words.some(word => word.startsWith('who') || word.startsWith('what') || 
+                                                      word.startsWith('which') || word.startsWith('where') || 
+                                                      word.startsWith('when') || word.startsWith('why') || 
+                                                      word.startsWith('how'));
+            const hasVerification = words.some(word => ['is', 'are', 'was', 'were'].includes(word));
+            
+            return hasQuestionWord && !hasVerification;
+        }
+
+        // Unified analysis function
+        async function performUnifiedAnalysis() {
             const resultsContainer = document.getElementById('resultsContainer');
-            const analyzeBtn = document.getElementById('analyzeBtn');
+            const unifiedBtn = document.getElementById('unifiedBtn');
             
             // Get premises from textarea and split by lines
             const premisesText = document.getElementById('premises').value.trim();
             const conclusion = document.getElementById('conclusion').value.trim();
 
-            if (!premisesText || !conclusion) {
-                resultsContainer.innerHTML = '<div class="error">Please enter premises and a conclusion.</div>';
+            if (!conclusion) {
+                resultsContainer.innerHTML = '<div class="error">Please enter a conclusion/question.</div>';
                 return;
             }
 
@@ -923,15 +1030,143 @@
                 .map(line => line.trim())
                 .filter(line => line.length > 0);
 
-            if (premises.length === 0) {
-                resultsContainer.innerHTML = '<div class="error">Please enter at least one premise.</div>';
+            // Check if this is an open-ended question
+            const isOpenEnded = isOpenEndedQuestion(conclusion);
+            
+            // If no premises and not open-ended, will query KB automatically via API
+            const willUseKB = premises.length === 0 && !isOpenEnded;
+
+            // Check cache first
+            if (hasCachedAnalysis(premisesText, conclusion)) {
+                console.log(' Using cached analysis result');
+                displayResults(analysisCache.lastResult);
+                return;
+            }
+
+            // Show loading
+            unifiedBtn.disabled = true;
+            if (willUseKB) {
+                unifiedBtn.textContent = '⚡ Querying KB...';
+                resultsContainer.innerHTML = '<div class="loading">Querying knowledge base...</div>';
+            } else if (isOpenEnded) {
+                unifiedBtn.textContent = '🧠 Drawing Conclusions...';
+                resultsContainer.innerHTML = '<div class="loading">Drawing conclusions using Prolog reasoning...</div>';
+            } else {
+                unifiedBtn.textContent = '🔄 Analyzing...';
+                resultsContainer.innerHTML = '<div class="loading">Analyzing your logical reasoning...</div>';
+            }
+
+            try {
+                let response;
+                if (isOpenEnded) {
+                    // Use Prolog inference endpoint
+                    response = await fetch('http://localhost:8002/prolog/infer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            premises: premises,
+                            query: conclusion || null
+                        })
+                    });
+                } else {
+                    // Use regular inference endpoint
+                    response = await fetch('http://localhost:8002/infer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            premises: premises,
+                            conclusion: conclusion,
+                            logic_type: selectedLogicType
+                        })
+                    });
+                }
+
+                if (!response.ok) {
+                    let errorDetail = `HTTP error! status: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) {
+                            errorDetail = errorData.detail;
+                        }
+                    } catch (e) {
+                        // If we can't parse JSON, use the default error
+                    }
+                    throw new Error(errorDetail);
+                }
+
+                const result = await response.json();
+                
+                // Store in cache
+                analysisCache.lastPremises = premisesText;
+                analysisCache.lastConclusion = conclusion;
+                analysisCache.lastResult = result;
+                analysisCache.timestamp = new Date();
+                
+                // Display results
+                if (isOpenEnded) {
+                    displayHybridResults(result);
+                } else {
+                    displayResults(result);
+                }
+                
+            } catch (error) {
+                console.error('Analysis error:', error);
+                
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Analysis Failed:</strong><br>
+                        ${error.message}
+                        <small>Please check that the API is running on port 8002.</small>
+                    </div>
+                `;
+            } finally {
+                unifiedBtn.disabled = false;
+                unifiedBtn.textContent = '🔍 Analyze Logic / Draw Conclusions';
+            }
+        }
+
+        // Perform analysis (kept for backward compatibility)
+        async function performAnalysis() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            // Get premises from textarea and split by lines
+            const premisesText = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+
+            if (!conclusion) {
+                resultsContainer.innerHTML = '<div class="error">Please enter a conclusion/question.</div>';
+                return;
+            }
+
+            // Split premises by lines and filter out empty lines
+            const premises = premisesText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            
+            // If no premises, will query KB automatically via API
+            const willUseKB = premises.length === 0;
+
+            // Check cache first
+            if (hasCachedAnalysis(premisesText, conclusion)) {
+                console.log(' Using cached analysis result');
+                displayResults(analysisCache.lastResult);
                 return;
             }
 
             // Show loading
             analyzeBtn.disabled = true;
-            analyzeBtn.textContent = '🔄 Analyzing...';
-            resultsContainer.innerHTML = '<div class="loading">Analyzing your logical reasoning...</div>';
+            if (willUseKB) {
+                analyzeBtn.textContent = '⚡ Querying KB...';
+                resultsContainer.innerHTML = '<div class="loading">Querying knowledge base...</div>';
+            } else {
+                analyzeBtn.textContent = '🔄 Analyzing...';
+                resultsContainer.innerHTML = '<div class="loading">Analyzing your logical reasoning...</div>';
+            }
 
             try {
                 const response = await fetch('http://localhost:8002/infer', {
@@ -947,25 +1182,201 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // Try to get detailed error message from response
+                    let errorDetail = `HTTP error! status: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) {
+                            errorDetail = errorData.detail;
+                        }
+                    } catch (e) {
+                        // If we can't parse JSON, use the default error
+                    }
+                    throw new Error(errorDetail);
                 }
 
                 const result = await response.json();
+                
+                // Store in cache
+                analysisCache.lastPremises = premisesText;
+                analysisCache.lastConclusion = conclusion;
+                analysisCache.lastResult = result;
+                analysisCache.timestamp = new Date();
+                console.log('💾 Cached analysis result');
+                
                 displayResults(result);
 
             } catch (error) {
                 console.error('Analysis error:', error);
+                
+                // Check if this is a rate limit error
+                const isRateLimit = error.message.includes('rate limit') || error.message.includes('429');
+                
                 resultsContainer.innerHTML = `
                     <div class="error">
-                        <strong>Analysis Failed:</strong><br>
-                        ${error.message}<br>
-                        <small>Please check that the API is running on port 8002.</small>
+                        <strong>${isRateLimit ? '⚠️ API Rate Limit' : 'Analysis Failed'}:</strong><br>
+                        ${error.message.split('\n').map(line => `<div>${line}</div>`).join('')}
+                        ${!isRateLimit ? '<small>Please check that the API is running on port 8002.</small>' : ''}
                     </div>
                 `;
             } finally {
                 analyzeBtn.disabled = false;
                 analyzeBtn.textContent = '🔍 Analyze Logic';
             }
+        }
+
+        // Perform Hybrid inference (ELMS + Prolog)
+        async function performHybridInference() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const hybridBtn = document.getElementById('hybridBtn');
+            
+            // Get premises from textarea and split by lines
+            const premisesText = document.getElementById('premises').value.trim();
+            const conclusion = document.getElementById('conclusion').value.trim();
+
+            // Split premises by lines and filter out empty lines
+            const premises = premisesText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (premises.length === 0) {
+                resultsContainer.innerHTML = '<div class="error">Please enter at least one premise.</div>';
+                return;
+            }
+
+            // Show loading
+            hybridBtn.disabled = true;
+            hybridBtn.textContent = '🧠 Drawing Conclusions...';
+            resultsContainer.innerHTML = '<div class="loading">Drawing conclusions using Prolog reasoning...</div>';
+
+            try {
+                // Use the prolog/infer endpoint
+                const response = await fetch('http://localhost:8002/prolog/infer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        premises: premises,
+                        query: conclusion || null
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayHybridResults(result);
+                
+            } catch (error) {
+                console.error('Hybrid inference error:', error);
+                
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Hybrid Inference Failed:</strong><br>
+                        ${error.message}
+                        <small>Please check that the API is running on port 8002.</small>
+                    </div>
+                `;
+            } finally {
+                hybridBtn.disabled = false;
+                hybridBtn.textContent = '🧠 Draw Conclusions (Hybrid)';
+            }
+        }
+
+        // Format answer from conclusions
+        function formatAnswer(conclusions) {
+            const conclusionValues = [];
+            for (const conclusion of conclusions) {
+                if (typeof conclusion === 'object' && conclusion.result) {
+                    conclusionValues.push(capitalizeFirst(conclusion.result));
+                } else if (typeof conclusion === 'object') {
+                    const values = Object.values(conclusion);
+                    if (values.length === 1) {
+                        conclusionValues.push(capitalizeFirst(values[0]));
+                    } else {
+                        conclusionValues.push(values.map(v => capitalizeFirst(v)).join(', '));
+                    }
+                } else {
+                    conclusionValues.push(capitalizeFirst(conclusion));
+                }
+            }
+            
+            if (conclusionValues.length === 1) {
+                return conclusionValues[0];
+            } else if (conclusionValues.length === 2) {
+                return `${conclusionValues[0]} and ${conclusionValues[1]}`;
+            } else {
+                return conclusionValues.slice(0, -1).join(', ') + `, and ${conclusionValues[conclusionValues.length - 1]}`;
+            }
+        }
+        
+        // Capitalize first letter
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+        
+        // Display Hybrid results (ELMS + Prolog)
+        function displayHybridResults(result) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = `
+                <div class="result-section">
+                    <div class="result-header">
+                        <div class="result-status valid">
+                            ✅ Inference Complete
+                        </div>
+                        <div class="confidence-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            🧠 Hybrid Reasoning (ELMS + Prolog)
+                        </div>
+                    </div>
+                    
+                    <div class="info-box" style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>⏱️ Reasoning Time:</strong> ${result.reasoning_time ? (result.reasoning_time < 0.01 ? result.reasoning_time.toFixed(4) : result.reasoning_time.toFixed(2)) : '0.00'}s
+                    </div>
+                    
+                    <div class="info-box" style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>📝 Premises (${result.premises.length}):</strong><br>
+                        ${result.premises.map((p, i) => `${i+1}. ${p}`).join('<br>')}
+                    </div>
+                    
+                    ${result.query ? `
+                    <div class="info-box" style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>❓ Query:</strong> ${result.query}
+                    </div>
+                    ` : ''}
+                    
+                    <div class="info-box" style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>🔬 Prolog Facts & Rules (${result.prolog_facts.length}):</strong><br>
+                        ${result.prolog_facts.map((f, i) => `${i+1}. ${f}`).join('<br>')}
+                    </div>
+                    
+                    <div class="info-box" style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>💡 Answer:</strong> ${result.conclusions.length > 0 ? formatAnswer(result.conclusions) : 'No conclusions found'}
+                        <br><br>
+                        <strong>📊 Total:</strong> ${result.conclusions_count} result(s)
+                    </div>
+                </div>
+                
+                <div class="info-box" style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <strong>📝 Explanation</strong><br>
+                    Based on the premises provided, I used logical inference to answer the question.<br><br>
+                    From the facts and rules:<br>
+                    ${result.prolog_facts.map((f, i) => `${i+1}. ${f}`).join('<br>')}<br><br>
+                    I queried: ${result.prolog_query || result.query}<br><br>
+                    This led me to find ${result.conclusions_count} result(s).
+                </div>
+                
+                <div class="info-box" style="background: #fff9e6; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <strong>🔍 How the System Reached This Conclusion:</strong><br>
+                    • Converted natural language premises to Prolog facts and rules<br>
+                    • Applied logical inference using the query: ${result.prolog_query || result.query}<br>
+                    • Found ${result.conclusions_count} conclusion(s) that satisfy the query
+                </div>
+            `;
+            
+            resultsContainer.innerHTML = html;
         }
 
         // Display results
@@ -978,11 +1389,47 @@
                         <div class="result-status ${result.valid ? 'valid' : 'invalid'}">
                             ${result.valid ? '✅ Valid' : '❌ Invalid'}
                         </div>
-                        <div class="confidence-badge confidence-${result.confidence.toLowerCase().replace(' ', '-')}">
-                            ${result.confidence}
+                        <div class="confidence-badge confidence-${typeof result.confidence === 'string' ? result.confidence.toLowerCase().replace(' ', '-') : 'numeric'}">
+                            ${typeof result.confidence === 'string' ? result.confidence : (result.confidence_level || 'Unknown')}${typeof result.confidence === 'number' ? ' (' + (result.confidence * 100).toFixed(1) + '%)' : ''}
                         </div>
                         ${result.logic_type ? `<div style="margin-left: auto; font-size: 12px; color: #7f8c8d;">${result.logic_type.toUpperCase()} Logic</div>` : ''}
                     </div>
+            `;
+
+            // Display KB usage if applicable
+            if (result.kb_used) {
+                html += `
+                    <div class="kb-usage-box" style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                        <h4 style="margin: 0 0 8px 0; color: #2e7d32;">📚 Knowledge Base Used</h4>
+                        <p style="margin: 0 0 8px 0; color: #1b5e20;">Used ${result.kb_facts_count || 0} facts from knowledge base</p>
+                        ${result.kb_facts && result.kb_facts.length > 0 ? `
+                            <div style="background: white; padding: 8px; border-radius: 3px; margin-top: 8px;">
+                                <strong style="color: #2e7d32;">Facts used:</strong>
+                                <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                                    ${result.kb_facts.map((fact, i) => `<li style="color: #1b5e20;">${fact.text || fact}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            // Display query time
+            if (result.query_time !== undefined && result.query_time !== null) {
+                html += `
+                    <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                        <h4 style="margin: 0; color: #1565c0;">⏱️ Query Time: ${result.query_time.toFixed(2)}s</h4>
+                    </div>
+                `;
+            }
+            
+            // Add "Copy All Details" button for debugging
+            html += `
+                <div style="margin: 15px 0;">
+                    <button onclick="copyAllDetails()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                        📋 Copy All Details (Debug)
+                    </button>
+                </div>
             `;
 
             if (result.explanation) {
@@ -1015,9 +1462,20 @@
             if (result.reasoning_steps && result.reasoning_steps.length > 0) {
                 html += `
                     <div class="premise-list">
-                        <h4>🔍 Reasoning Steps</h4>
+                        <h4>🔍 How the System Reached This Conclusion</h4>
                         ${result.reasoning_steps.map((step, index) => `
                             <div class="premise-item">${step}</div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            if (result.formal_steps && result.formal_steps.length > 0) {
+                html += `
+                    <div class="premise-list">
+                        <h4>📐 Formal Logical Proof</h4>
+                        ${result.formal_steps.map((step, index) => `
+                            <div class="premise-item" style="font-family: 'Courier New', monospace; background: #f8f9fa; padding: 8px; margin: 5px 0; border-left: 3px solid #3498db;">${step}</div>
                         `).join('')}
                     </div>
                 `;
@@ -1061,6 +1519,37 @@
 
             html += '</div>';
             resultsContainer.innerHTML = html;
+        }
+        
+        // Copy all details for debugging
+        function copyAllDetails() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const allText = resultsContainer.innerText;
+            
+            // Create a temporary textarea element
+            const textarea = document.createElement('textarea');
+            textarea.value = allText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            
+            // Select and copy
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Remove the textarea
+            document.body.removeChild(textarea);
+            
+            // Show success message
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '✅ Copied!';
+            button.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            }, 2000);
         }
 
         // Knowledge Base Functions
@@ -1304,6 +1793,13 @@
                 return;
             }
 
+            // Check cache for Claude result
+            if (hasCachedAnalysis(premises, conclusion) && analysisCache.claudeResult) {
+                console.log('✅ Using cached Claude analysis result');
+                displayLLMReasoningResults(analysisCache.claudeResult);
+                return;
+            }
+
             const resultsContainer = document.getElementById('resultsContainer');
             resultsContainer.innerHTML = '<div class="loading">Claude is reasoning about your premises...</div>';
 
@@ -1325,6 +1821,14 @@
                 }
 
                 const result = await response.json();
+                
+                // Store Claude result in cache
+                if (!analysisCache.lastResult || 
+                    getCacheKey(premises, conclusion) === getCacheKey(analysisCache.lastPremises, analysisCache.lastConclusion)) {
+                    analysisCache.claudeResult = result;
+                    console.log('💾 Cached Claude result');
+                }
+                
                 displayLLMReasoningResults(result);
 
             } catch (error) {
@@ -1617,12 +2121,30 @@
                             <div class="result-status ${vectionaryResult.valid ? 'valid' : 'invalid'}">
                                 ${vectionaryResult.valid ? '✅ Valid' : '❌ Invalid'}
                             </div>
-                            <div class="confidence-badge confidence-${vectionaryResult.confidence.toLowerCase().replace(' ', '-')}">
-                                ${vectionaryResult.confidence}
+                            <div class="confidence-badge confidence-${typeof vectionaryResult.confidence === 'string' ? vectionaryResult.confidence.toLowerCase().replace(' ', '-') : 'numeric'}">
+                                ${typeof vectionaryResult.confidence === 'string' ? vectionaryResult.confidence : (vectionaryResult.confidence_level || 'Unknown')}${typeof vectionaryResult.confidence === 'number' ? ' (' + (vectionaryResult.confidence * 100).toFixed(1) + '%)' : ''}
                             </div>
                             ${vectionaryResult.logic_type ? `<div style="margin-left: auto; font-size: 12px; color: #7f8c8d;">${vectionaryResult.logic_type.toUpperCase()} Logic</div>` : ''}
                         </div>
                 `;
+                
+                // Display KB usage if applicable
+                if (vectionaryResult.kb_used) {
+                    html += `
+                        <div class="kb-usage-box" style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                            <h5 style="margin: 0 0 8px 0; color: #2e7d32;">📚 Knowledge Base Used</h5>
+                            <p style="margin: 0 0 8px 0; color: #1b5e20;">Used ${vectionaryResult.kb_facts_count || 0} facts from knowledge base</p>
+                            ${vectionaryResult.kb_facts && vectionaryResult.kb_facts.length > 0 ? `
+                                <div style="background: white; padding: 8px; border-radius: 3px; margin-top: 8px;">
+                                    <strong style="color: #2e7d32;">Facts used:</strong>
+                                    <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                                        ${vectionaryResult.kb_facts.map((fact, i) => `<li style="color: #1b5e20;">${fact.text || fact}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
                 
                 if (vectionaryResult.explanation) {
                     html += `
@@ -1636,9 +2158,20 @@
                 if (vectionaryResult.reasoning_steps && vectionaryResult.reasoning_steps.length > 0) {
                     html += `
                         <div class="premise-list">
-                            <h5>🔍 Reasoning Steps</h5>
+                            <h5>🔍 How the System Reached This Conclusion</h5>
                             ${vectionaryResult.reasoning_steps.map((step, index) => `
                                 <div class="premise-item">${step}</div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                if (vectionaryResult.formal_steps && vectionaryResult.formal_steps.length > 0) {
+                    html += `
+                        <div class="premise-list">
+                            <h5>📐 Formal Logical Proof</h5>
+                            ${vectionaryResult.formal_steps.map((step, index) => `
+                                <div class="premise-item" style="font-family: 'Courier New', monospace; background: #f8f9fa; padding: 8px; margin: 5px 0; border-left: 3px solid #3498db;">${step}</div>
                             `).join('')}
                         </div>
                     `;
@@ -1672,7 +2205,7 @@
                         <h4>🔬 Vectionary Results</h4>
                         <p><strong>Formula:</strong> ${result.vectionary_result.formula}</p>
                         <p><strong>Logic Type:</strong> ${result.vectionary_result.logic_type}</p>
-                        <p><strong>Confidence:</strong> ${result.vectionary_result.confidence}</p>
+                        <p><strong>Confidence:</strong> ${result.vectionary_result.confidence_level || 'Unknown'} ${result.vectionary_result.confidence && typeof result.vectionary_result.confidence === 'number' ? '(' + (result.vectionary_result.confidence * 100).toFixed(1) + '%)' : ''}</p>
                         <p><strong>Explanation:</strong> ${result.vectionary_result.explanation}</p>
                     </div>
                 `;
@@ -1692,11 +2225,67 @@
             }
             
             if (result.comparison) {
+                const validation = result.comparison.claude_vs_vectionary_validation || {};
+                
                 html += `
                     <div class="comparison-section">
                         <h4>⚖️ Comparison Analysis</h4>
                         <p><strong>Agreement:</strong> ${result.comparison.agreement ? '✅ Yes' : '❌ No'}</p>
-                        <p><strong>Validation Details:</strong> ${JSON.stringify(result.comparison.claude_vs_vectionary_validation, null, 2)}</p>
+                        
+                        <div style="margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                            <h5>📋 Validation Details</h5>
+                            
+                            ${validation.llm_response ? `
+                                <div style="margin: 10px 0;">
+                                    <strong>Claude's Response:</strong>
+                                    <pre style="background: white; padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; max-height: 200px;">${validation.llm_response.substring(0, 500)}${validation.llm_response.length > 500 ? '...' : ''}</pre>
+                                </div>
+                            ` : ''}
+                            
+                            ${validation.premise_formulas ? `
+                                <div style="margin: 10px 0;">
+                                    <strong>Premise Formulas:</strong>
+                                    <ul>
+                                        ${validation.premise_formulas.map(f => `<li><code>${f}</code></li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            
+                            ${validation.conclusion_formula ? `
+                                <div style="margin: 10px 0;">
+                                    <strong>Conclusion Formula:</strong> <code>${validation.conclusion_formula}</code>
+                                </div>
+                            ` : ''}
+                            
+                            ${validation.is_valid !== undefined ? `
+                                <div style="margin: 10px 0;">
+                                    <strong>Is Valid:</strong> ${validation.is_valid ? '✅ Yes' : '❌ No'}
+                                </div>
+                            ` : ''}
+                            
+                            ${validation.consistency_analysis ? `
+                                <div style="margin: 10px 0;">
+                                    <strong>Consistency:</strong> ${validation.consistency_analysis.consistent ? '✅ Consistent' : '❌ Inconsistent'}
+                                    <br><strong>Confidence:</strong> ${validation.consistency_analysis.confidence}
+                                    <br><strong>Explanation:</strong> ${validation.consistency_analysis.explanation}
+                                </div>
+                            ` : ''}
+                            
+                            ${validation.reasoning_steps ? `
+                                <div style="margin: 10px 0;">
+                                    <strong>Reasoning Steps:</strong>
+                                    <ol style="margin: 5px 0;">
+                                        ${validation.reasoning_steps.map(step => `<li>${step}</li>`).join('')}
+                                    </ol>
+                                </div>
+                            ` : ''}
+                            
+                            ${validation.llm_confidence ? `
+                                <div style="margin: 10px 0;">
+                                    <strong>LLM Confidence:</strong> ${validation.llm_confidence}
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             }
@@ -1748,10 +2337,15 @@
                             <div class="result-status ${vectionaryResult.valid ? 'valid' : 'invalid'}">
                                 ${vectionaryResult.valid ? '✅ Valid' : '❌ Invalid'}
                             </div>
-                            <div class="confidence-badge confidence-${vectionaryResult.confidence.toLowerCase().replace(' ', '-')}">
-                                ${vectionaryResult.confidence}
+                            <div class="confidence-badge confidence-${typeof vectionaryResult.confidence === 'string' ? vectionaryResult.confidence.toLowerCase().replace(' ', '-') : 'numeric'}">
+                                ${typeof vectionaryResult.confidence === 'string' ? vectionaryResult.confidence : (vectionaryResult.confidence_level || 'Unknown')}${typeof vectionaryResult.confidence === 'number' ? ' (' + (vectionaryResult.confidence * 100).toFixed(1) + '%)' : ''}
                             </div>
                         </div>
+                        ${vectionaryResult.kb_used ? `
+                            <div class="kb-usage-box" style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 8px; margin: 10px 0; border-radius: 4px;">
+                                <strong style="color: #2e7d32;">📚 KB Used:</strong> ${vectionaryResult.kb_facts_count || 0} facts
+                            </div>
+                        ` : ''}
                         <p><strong>Key Insight:</strong> ${fusionAnalysis.vectionaryInsight}</p>
                         <p><strong>Strengths:</strong> ${fusionAnalysis.vectionaryStrengths}</p>
                 `;
@@ -1937,6 +2531,9 @@
         }
 
         function getConfidenceScore(confidence) {
+            if (typeof confidence === 'number') {
+                return Math.round(confidence * 100);
+            }
             if (typeof confidence === 'string') {
                 switch (confidence.toLowerCase()) {
                     case 'very high confidence': return 95;
@@ -1968,7 +2565,11 @@
             }
             
             if (vectionaryResult && vectionaryResult.reasoning_steps && vectionaryResult.reasoning_steps.length > 2) {
-                insights.push('Vectionary provides detailed step-by-step logical reasoning');
+                insights.push('Vectionary provides detailed conversational reasoning');
+            }
+            
+            if (vectionaryResult && vectionaryResult.formal_steps && vectionaryResult.formal_steps.length > 0) {
+                insights.push('Vectionary includes formal logical proof with formulas and inference rules');
             }
             
             if (claudeResult && claudeResult.reasoning_result && claudeResult.reasoning_result.claude_response) {

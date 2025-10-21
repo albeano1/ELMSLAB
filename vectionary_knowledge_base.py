@@ -1,8 +1,5 @@
 """
 Vectionary-Based Knowledge Base for Enhanced Logic Reasoning
-
-This module implements a comprehensive knowledge base that leverages Vectionary parsing
-for high-accuracy logical reasoning and fact storage.
 """
 
 import json
@@ -12,7 +9,7 @@ from datetime import datetime
 from dataclasses import dataclass, asdict, field
 from collections import defaultdict
 
-from vectionary_98_percent_solution import Vectionary98PercentSolution, ParsedStatement, LogicType
+from ELMS import LogicalReasoner, VectionaryParser, VectionaryAPIClient, ParsedStatement, LogicType
 
 
 @dataclass
@@ -30,10 +27,10 @@ class VectionaryFact:
 
 class VectionaryKnowledgeBase:
     """
-    Enhanced Knowledge Base using Vectionary 98% accuracy parsing.
+    Enhanced Knowledge Base using Vectionary parsing.
     
     Features:
-    - Store facts with Vectionary parsing (98% accuracy)
+    - Store facts with Vectionary parsing
     - Query using natural language with automatic parsing
     - Infer new facts using logical reasoning
     - Temporal reasoning support
@@ -45,7 +42,10 @@ class VectionaryKnowledgeBase:
         self.storage_file = storage_file
         self.facts: Dict[str, VectionaryFact] = {}
         self.fact_counter = 0
-        self.vectionary_engine = Vectionary98PercentSolution()
+        # Initialize the enhanced reasoning engine
+        api_client = VectionaryAPIClient(environment='prod')
+        vectionary_parser = VectionaryParser(api_client)
+        self.vectionary_engine = LogicalReasoner(vectionary_parser)
         
         # Indexes for efficient querying
         self.indexes = {
@@ -76,7 +76,7 @@ class VectionaryKnowledgeBase:
         print(f"📝 Adding fact to knowledge base: {text}")
         
         # Parse the fact using Vectionary
-        parsed_statement = self.vectionary_engine.parse_with_vectionary_98(text)
+        parsed_statement = self.vectionary_engine.parser.parse(text)
         
         # Generate ID
         self.fact_counter += 1
@@ -123,7 +123,7 @@ class VectionaryKnowledgeBase:
         print(f"🔍 Querying knowledge base: {question}")
         
         # Parse the question using Vectionary
-        parsed_query = self.vectionary_engine.parse_with_vectionary_98(question)
+        parsed_query = self.vectionary_engine.parser.parse(question)
         
         # Find relevant facts
         relevant_facts = self._find_relevant_facts(parsed_query)
@@ -141,7 +141,7 @@ class VectionaryKnowledgeBase:
         premises = [fact.text for fact in relevant_facts]
         
         try:
-            result = self.vectionary_engine.prove_theorem_98(premises, question)
+            result = self.vectionary_engine.prove_theorem(premises, question)
             
             return {
                 "answer": "Yes" if result.get('valid', False) else "No",

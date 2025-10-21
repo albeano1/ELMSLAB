@@ -1,14 +1,8 @@
-"""
-Vectionary 98% API
-
-This API integrates the 98% accuracy solution with your existing system
-to eliminate all edge cases in the HTML interface.
-"""
-
 # Load environment variables first
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # Try .env.local first (for local development), then .env
+    load_dotenv('.env.local') or load_dotenv('.env')
 except ImportError:
     pass
 
@@ -21,12 +15,20 @@ from typing import List, Dict, Any, Optional, Union
 import uvicorn
 import json
 import re
-from vectionary_98_percent_solution import Vectionary98PercentSolution
+from ELMS import LogicalReasoner, VectionaryParser, ConfidenceCalculator, VectionaryAPIClient, _convert_nl_to_prolog, _convert_query_to_prolog, _is_open_ended_question
 from vectionary_knowledge_base import VectionaryKnowledgeBase
-from claude_integration import ClaudeIntegration
+from prolog_reasoner import PrologReasoner
+
+# Optional Claude integration
+try:
+    from claude_integration import ClaudeIntegration
+    CLAUDE_AVAILABLE = True
+except ImportError:
+    CLAUDE_AVAILABLE = False
+    ClaudeIntegration = None
 
 
-app = FastAPI(title="Vectionary 98% API", version="1.0.0")
+app = FastAPI(title="ELMS Vectionary API", version="1.0.0")
 
 # Add CORS middleware
 app.add_middleware(
@@ -37,11 +39,16 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Initialize the 98% solution
-vectionary_98 = Vectionary98PercentSolution()
+# Initialize the enhanced reasoning engine with production environment
+api_client = VectionaryAPIClient(environment='prod')
+vectionary_parser = VectionaryParser(api_client)
+vectionary_engine = LogicalReasoner(vectionary_parser)
 
 # Initialize the Vectionary Knowledge Base
 knowledge_base = VectionaryKnowledgeBase()
+
+# Initialize the Prolog Reasoner
+prolog_reasoner = PrologReasoner()
 
 # Initialize Claude Integration (optional - will be None if API key not available)
 try:
@@ -63,11 +70,16 @@ class InferenceResponse(BaseModel):
     confidence: Union[float, str]  # Allow both number and string for confidence
     explanation: str
     reasoning_steps: Optional[List[str]] = None
+    formal_steps: Optional[List[str]] = None
     parsed_premises: Optional[List[str]] = None
     parsed_conclusion: Optional[str] = None
     vectionary_enhanced: bool = False
-    vectionary_98_enhanced: bool = False
     logic_type: Optional[str] = None
+    confidence_level: Optional[str] = None
+    kb_used: Optional[bool] = False
+    kb_facts_count: Optional[int] = None
+    kb_facts: Optional[List[Dict[str, Any]]] = None
+    query_time: Optional[float] = None
 
 
 class VectionaryParseRequest(BaseModel):
@@ -94,10 +106,10 @@ async def health_check():
 
 @app.post("/parse", response_model=VectionaryParseResponse)
 async def parse_with_vectionary(request: VectionaryParseRequest):
-    """Parse text using Vectionary for 98% accuracy."""
+    """Parse text using Vectionary parsing."""
     try:
         # Get Vectionary trees
-        trees = vectionary_98._get_vectionary_trees(request.text)
+        trees = api_client.get_trees(request.text)
         
         return VectionaryParseResponse(
             trees=trees,
@@ -108,64 +120,170 @@ async def parse_with_vectionary(request: VectionaryParseRequest):
 
 
 @app.post("/infer", response_model=InferenceResponse)
-async def check_inference_98(request: InferenceRequest):
+async def check_inference(request: InferenceRequest):
     """
-    Check logical inference with 98% accuracy using Vectionary integration.
+    Check logical inference using Vectionary integration.
     """
     try:
         print(f"🔍 Logic API: Inference request - Premises: {request.premises}, Conclusion: {request.conclusion}")
         
-        # Use the 98% solution for theorem proving
-        result = vectionary_98.prove_theorem_98(request.premises, request.conclusion)
+        # If no premises provided, check knowledge base first
+        premises_to_use = request.premises
+        kb_used = False
+        kb_facts_used = []
         
-        print(f"🎯 Logic API: Result - Valid: {result['valid']}, Confidence: {result['confidence']}")
-        
-        # Get Vectionary trees for display
-        vectionary_trees = []
-        for premise in request.premises:
-            trees = vectionary_98._get_vectionary_trees(premise)
-            vectionary_trees.extend(trees)
-        
-        conclusion_trees = vectionary_98._get_vectionary_trees(request.conclusion)
-        vectionary_trees.extend(conclusion_trees)
-        
-        # Create explanation with both theorem notation and plain English
-        if result.get('explanation') and ('reasoning:' in result['explanation'].lower() or 'universal instantiation:' in result['explanation'].lower()):
-            # Use the English explanation from the reasoning result
-            english_explanation = result['explanation']
+        if not request.premises or len(request.premises) == 0:
+            print(f"📚 No premises provided - checking knowledge base for: {request.conclusion}")
+            kb_result = knowledge_base.query(request.conclusion)
             
-            # Add theorem notation if we have reasoning steps
-            if result.get('reasoning_steps'):
+            if kb_result and kb_result.get('relevant_facts'):
+                print(f"✅ Found {len(kb_result['relevant_facts'])} relevant facts in KB")
+                premises_to_use = kb_result['relevant_facts']
+                kb_used = True
+                kb_facts_used = [{'text': fact} for fact in kb_result['relevant_facts']]
+        
+        # Use the enhanced reasoning engine for theorem proving (with timing)
+        import time
+        start_time = time.time()
+        result = vectionary_engine.prove_theorem(premises_to_use, request.conclusion)
+        elapsed_time = time.time() - start_time
+        
+        # Add KB info to result
+        result['kb_used'] = kb_used
+        if kb_used:
+            result['kb_facts_count'] = len(kb_facts_used)
+            result['kb_facts'] = kb_facts_used
+        
+        # Add timing info to result
+        result['query_time'] = elapsed_time
+        
+        print(f"🎯 Logic API: Result - Valid: {result['valid']}, Confidence: {result['confidence']}, Time: {elapsed_time:.2f}s")
+        
+        # Use trees already parsed during theorem proving (no redundant API calls!)
+        vectionary_trees = []
+        if result.get('premise_trees'):
+            vectionary_trees.extend(result['premise_trees'])
+        if result.get('conclusion_tree'):
+            vectionary_trees.append(result['conclusion_tree'])
+        
+        # Create explanation with theorem notation from API trees
+        # Always add formal theorem if we have reasoning steps and trees
+        if result.get('reasoning_steps') and vectionary_trees:
+            # Use the English explanation from the reasoning result
+            english_explanation = result.get('explanation', '')
+            
+            # Build formal theorem from API tree data
+            if True:  # Always build theorem when we have trees
                 # Extract premises and conclusion for clean theorem format
                 premises = result.get('parsed_premises', [])
                 conclusion = result.get('parsed_conclusion', '')
                 
                 if premises and conclusion:
-                    # Create clean theorem format
-                    theorem_notation = "Theorem: (P₁ ∧ P₂ ∧ ... ∧ Pₙ) → C"
-                    theorem_notation += "\nwhere "
+                    # Build ACTUAL formal theorem from Vectionary trees (not placeholder!)
+                    # Get premise trees from result (already parsed during theorem proving)
+                    premise_tree_list = result.get('premise_trees', [])
                     
-                    # Add premise definitions
-                    premise_defs = []
-                    for i, premise in enumerate(premises, 1):
-                        # Convert parsed premise to readable form
-                        readable_premise = premise.replace('_', ' ').title()
-                        premise_defs.append(f"P{i}: {readable_premise}")
+                    # Get conclusion tree from result
+                    conclusion_tree = result.get('conclusion_tree')
                     
-                    # Add conclusion definition
-                    readable_conclusion = conclusion.replace('_', ' ').title()
+                    # Build formal theorem from tree data
+                    theorem_parts = []
                     
-                    theorem_notation += " ∧ ".join([f"P{i}" for i in range(1, len(premises) + 1)])
-                    theorem_notation += f"\n      C: {readable_conclusion}\n"
-                    theorem_notation += "\n".join([f"      {defn}" for defn in premise_defs])
+                    # Track proper nouns for pronoun resolution
+                    proper_nouns = []
+                    for tree in premise_tree_list + ([conclusion_tree] if conclusion_tree else []):
+                        for child in tree.get('children', []):
+                            if child.get('pos') == 'PROP':
+                                proper_nouns.append(child.get('text', ''))
+                    
+                    pronoun_map = {}
+                    if proper_nouns:
+                        pronoun_map = {'he': proper_nouns[-1], 'she': proper_nouns[-1], 'they': proper_nouns[-1]}
+                    
+                    # Build predicates from premise trees
+                    for tree in premise_tree_list:
+                        pred = tree.get('lemma', tree.get('text', ''))
+                        children = tree.get('children', [])
+                        marks = tree.get('marks', [])
+                        
+                        # Extract arguments from semantic roles
+                        args = []
+                        for role in ['agent', 'experiencer', 'beneficiary', 'patient', 'theme', 'location']:
+                            for child in children:
+                                if child.get('role') == role:
+                                    arg_text = child.get('text', '')
+                                    arg_text = pronoun_map.get(arg_text.lower(), arg_text)
+                                    args.append(arg_text)
+                        
+                        # Build formal predicate
+                        formal_pred = f"{pred}({', '.join(args)})" if args else f"{pred}()"
+                        
+                        # Check for temporal markers
+                        for mark in marks:
+                            mark_text = mark.get('text', '') if isinstance(mark, dict) else mark
+                            if mark_text.lower() in ['then', 'after', 'before']:
+                                formal_pred = f"[{mark_text.lower()}] {formal_pred}"
+                                break
+                        
+                        theorem_parts.append(formal_pred)
+                    
+                    # Build conclusion predicate
+                    if conclusion_tree:
+                        conclusion_pred = conclusion_tree.get('lemma', conclusion_tree.get('text', ''))
+                        conclusion_children = conclusion_tree.get('children', [])
+                        conclusion_args = []
+                        
+                        for role in ['agent', 'experiencer', 'beneficiary', 'patient', 'theme', 'location']:
+                            for child in conclusion_children:
+                                if child.get('role') == role:
+                                    arg_text = child.get('text', '')
+                                    arg_text = pronoun_map.get(arg_text.lower(), arg_text)
+                                    conclusion_args.append(arg_text)
+                        
+                        conclusion_formal = f"{conclusion_pred}({', '.join(conclusion_args)})" if conclusion_args else f"{conclusion_pred}()"
+                    else:
+                        conclusion_formal = conclusion
+                    
+                    # Construct the formal theorem
+                    if len(theorem_parts) == 1:
+                        theorem_notation = f"Theorem: {theorem_parts[0]} → {conclusion_formal}"
+                    else:
+                        premise_conjunction = " ∧ ".join(theorem_parts)
+                        theorem_notation = f"Theorem: ({premise_conjunction}) → {conclusion_formal}"
+                    
+                    # Add semantic interpretations from tree definitions
+                    theorem_notation += "\n\nSemantic Interpretation:"
+                    for i, tree in enumerate(premise_tree_list, 1):
+                        verb = tree.get('text', '')
+                        definition = tree.get('definition', '')
+                        if definition:
+                            short_def = definition[:80] + "..." if len(definition) > 80 else definition
+                            theorem_notation += f"\n  P{i}: {verb} = \"{short_def}\""
+                    
+                    if conclusion_tree:
+                        verb = conclusion_tree.get('text', '')
+                        definition = conclusion_tree.get('definition', '')
+                        if definition:
+                            short_def = definition[:80] + "..." if len(definition) > 80 else definition
+                            theorem_notation += f"\n  C: {verb} = \"{short_def}\""
                 else:
-                    # Fallback to simple format
-                    theorem_notation = "Theorem: " + " ∧ ".join([f"({step.split('(')[0].strip()})" for step in result['reasoning_steps'] if '(' in step])
+                    # Fallback to simple format only if no trees available
+                    theorem_notation = "Theorem: (P₁ ∧ P₂ ∧ ... ∧ Pₙ) → C"
                 
                 final_explanation = f"{english_explanation}\n\n{theorem_notation}"
-            else:
-                final_explanation = english_explanation
         else:
+            # No reasoning steps, just use explanation
+            final_explanation = result.get('explanation', '')
+            
+            # Still try to add simple theorem if we have basic info
+            premises = result.get('parsed_premises', [])
+            conclusion = result.get('parsed_conclusion', '')
+            if premises and conclusion:
+                simple_theorem = f"\n\nTheorem: ({' ∧ '.join(premises)}) → {conclusion}"
+                final_explanation += simple_theorem
+        
+        # Always check for missing explanation
+        if not final_explanation:
             # Use explanation from result if available, otherwise create a simple English explanation
             if 'explanation' in result and result['explanation']:
                 final_explanation = result['explanation']
@@ -175,14 +293,17 @@ async def check_inference_98(request: InferenceRequest):
                 final_explanation = "The conclusion cannot be proven from the given premises using available logical reasoning methods."
         
         # Convert confidence to descriptive levels
-        if result['confidence'] > 0.9:
-            confidence_level = "HIGH CONFIDENCE"
-        elif result['confidence'] > 0.7:
-            confidence_level = "MEDIUM CONFIDENCE"
-        elif result['confidence'] > 0.5:
-            confidence_level = "LOW CONFIDENCE"
+        confidence = result.get('confidence', 0.0)
+        if confidence >= 0.95:
+            confidence_level = "Very High"
+        elif confidence >= 0.85:
+            confidence_level = "High"
+        elif confidence >= 0.70:
+            confidence_level = "Medium"
+        elif confidence >= 0.50:
+            confidence_level = "Low"
         else:
-            confidence_level = "VERY LOW CONFIDENCE"
+            confidence_level = "Very Low"
         
         # Determine logic type
         logic_type = "first_order" if any("∀" in str(step) or "∃" in str(step) for step in result.get('reasoning_steps', [])) else "propositional"
@@ -247,19 +368,39 @@ async def check_inference_98(request: InferenceRequest):
         
         return InferenceResponse(
             valid=result['valid'],
-            confidence=confidence_level,
+            confidence=confidence,  # Return numeric confidence for percentage calculation
             explanation=final_explanation,
             reasoning_steps=result.get('reasoning_steps', []),
+            formal_steps=result.get('formal_steps', []),
             parsed_premises=result.get('parsed_premises', []),
             parsed_conclusion=result.get('parsed_conclusion', ''),
-            vectionary_enhanced=result.get('vectionary_enhanced', False),
-            vectionary_98_enhanced=result.get('vectionary_98_enhanced', True),
-            logic_type=logic_type
+            vectionary_enhanced=result.get('vectionary_enhanced', True),
+            logic_type=logic_type,
+            confidence_level=result.get('confidence_level', confidence_level),
+            kb_used=result.get('kb_used', False),
+            kb_facts_count=result.get('kb_facts_count'),
+            kb_facts=result.get('kb_facts'),
+            query_time=result.get('query_time')
         )
         
     except Exception as e:
-        print(f"❌ Logic API Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")
+        error_msg = str(e)
+        print(f"❌ Logic API Error: {error_msg}")
+        
+        # Provide helpful error message for rate limiting
+        if "rate limit" in error_msg.lower() or "429" in error_msg:
+            friendly_msg = (
+                "⚠️ Vectionary API Rate Limit Exceeded\n\n"
+                "The API is temporarily rate-limited. Please try:\n"
+                "1. Wait 1-5 minutes and try again\n"
+                "2. Use simpler sentences\n"
+                "3. Use a local API server (--env local)\n"
+                "4. Add your own API key at https://openrouter.ai/settings/integrations\n\n"
+                f"Technical details: {error_msg[:200]}"
+            )
+            raise HTTPException(status_code=429, detail=friendly_msg)
+        
+        raise HTTPException(status_code=500, detail=f"Inference failed: {error_msg}")
 
 
 @app.get("/test-edge-case")
@@ -279,7 +420,7 @@ async def test_edge_case():
         "premises": premises,
         "conclusion": conclusion,
         "result": result,
-        "success": result['valid'] and result['confidence'] >= 0.95
+        "success": result['valid'] and result.get('confidence', 0.0) >= 0.85
     }
 
 
@@ -311,7 +452,7 @@ async def convert_text(request: dict):
             return {"error": "No text provided"}
         
         # Use the 98% solution for conversion
-        parsed = vectionary_98.parse_with_vectionary_98(text)
+        parsed = vectionary_engine.parse_with_vectionary(text)
         
         return {
             "original_text": text,
@@ -326,25 +467,25 @@ async def convert_text(request: dict):
 @app.post("/knowledge/add")
 async def add_knowledge(request: dict):
     """Add knowledge (compatibility endpoint)."""
-    return {"message": "Knowledge added successfully", "vectionary_98": True}
+    return {"message": "Knowledge added successfully", "vectionary_enhanced": True}
 
 
 @app.post("/knowledge/query")
 async def query_knowledge(request: dict):
     """Query knowledge (compatibility endpoint)."""
-    return {"results": [], "vectionary_98": True}
+    return {"results": [], "vectionary_enhanced": True}
 
 
 @app.get("/knowledge/facts")
 async def get_facts():
     """Get facts (compatibility endpoint)."""
-    return {"facts": [], "vectionary_98": True}
+    return {"facts": [], "vectionary_enhanced": True}
 
 
 @app.post("/knowledge/clear")
 async def clear_knowledge():
     """Clear knowledge (compatibility endpoint)."""
-    return {"message": "Knowledge cleared", "vectionary_98": True}
+    return {"message": "Knowledge cleared", "vectionary_enhanced": True}
 
 
 @app.post("/temporal/infer")
@@ -354,15 +495,15 @@ async def temporal_infer(request: dict):
         premises = request.get('premises', [])
         conclusion = request.get('conclusion', '')
         
-        # Use the 98% solution for temporal inference
-        result = vectionary_98.prove_theorem_98(premises, conclusion)
+        # Use the enhanced reasoning engine for temporal inference
+        result = vectionary_engine.prove_theorem(premises, conclusion)
         
         return {
             "valid": result['valid'],
             "confidence": result['confidence'],
             "explanation": result['explanation'],
             "timeline": [],
-            "vectionary_98_enhanced": True
+            "vectionary_enhanced": True
         }
     except Exception as e:
         return {"error": str(e)}
@@ -371,7 +512,7 @@ async def temporal_infer(request: dict):
 @app.post("/validate_timeline")
 async def validate_timeline(request: dict):
     """Validate timeline (compatibility endpoint)."""
-    return {"valid": True, "vectionary_98": True}
+    return {"valid": True, "vectionary_enhanced": True}
 
 
 # ===== KNOWLEDGE BASE API ENDPOINTS =====
@@ -449,6 +590,60 @@ async def clear_knowledge_base():
         knowledge_base.clear_all_facts()
         return {"success": True, "message": "Knowledge base cleared"}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/query")
+async def query_with_optional_premises(request: dict):
+    """
+    Query with optional premises - checks knowledge base first if no premises provided.
+    This allows users to ask questions without providing premises if the info is already in the KB.
+    """
+    try:
+        premises = request.get('premises', [])
+        conclusion = request.get('conclusion', '')
+        
+        if not conclusion:
+            raise HTTPException(status_code=400, detail="Conclusion is required")
+        
+        # If no premises provided, check knowledge base first
+        if not premises or len(premises) == 0:
+            print(f"🔍 No premises provided, checking knowledge base for: {conclusion}")
+            kb_result = knowledge_base.query(conclusion)
+            
+            if kb_result and kb_result.get('relevant_facts'):
+                # Found relevant facts in KB, use them as premises
+                print(f"✅ Found {len(kb_result['relevant_facts'])} relevant facts in KB")
+                kb_premises = kb_result['relevant_facts']
+                
+                # Now do inference with KB facts
+                result = vectionary_engine.prove_theorem(kb_premises, conclusion)
+                
+                # Enhance result with KB info
+                result['kb_used'] = True
+                result['kb_facts_count'] = len(kb_result['relevant_facts'])
+                result['kb_facts'] = [{'text': fact} for fact in kb_result['relevant_facts']]
+                
+                return result
+            else:
+                # No relevant facts in KB
+                return {
+                    'valid': False,
+                    'confidence': 0.0,
+                    'confidence_level': 'Unknown',
+                    'explanation': 'No relevant facts found in knowledge base. Please provide premises.',
+                    'kb_used': True,
+                    'kb_facts_count': 0,
+                    'kb_facts': []
+                }
+        else:
+            # Premises provided, do normal inference
+            result = vectionary_engine.prove_theorem(premises, conclusion)
+            result['kb_used'] = False
+            return result
+            
+    except Exception as e:
+        print(f"❌ Query error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -552,7 +747,7 @@ async def convert_text_with_llm(request: LLMConvertRequest):
     """Convert text to logic using both Vectionary and Claude for comparison."""
     try:
         # Use Vectionary for conversion
-        vectionary_result = vectionary_98.parse_with_vectionary_98(request.text)
+        vectionary_result = vectionary_engine.parse_with_vectionary(request.text)
         
         result = {
             "success": True,
@@ -618,7 +813,7 @@ async def get_llm_status():
     """Get the status of LLM integration."""
     return {
         "claude_available": claude_integration is not None,
-        "vectionary_available": vectionary_98 is not None,
+        "vectionary_available": vectionary_engine is not None,
         "knowledge_base_available": knowledge_base is not None,
         "timestamp": "2024-01-01T00:00:00Z"  # You might want to use actual timestamp
     }
@@ -656,6 +851,123 @@ async def test_llm_integration():
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM test failed: {str(e)}")
+
+
+# ==================== Prolog Inference Endpoints ====================
+
+class PrologInferenceRequest(BaseModel):
+    premises: List[str]
+    query: Optional[str] = None
+
+class PrologInferenceResponse(BaseModel):
+    success: bool
+    premises: List[str]
+    query: Optional[str] = None
+    prolog_facts: List[str]
+    conclusions: List[Dict[str, Any]]
+    conclusions_count: int
+    reasoning_time: float
+
+
+@app.post("/prolog/infer", response_model=PrologInferenceResponse)
+async def prolog_infer(request: PrologInferenceRequest):
+    """
+    Infer conclusions from premises using Prolog reasoning
+    Uses ELMS.py functions directly for consistency
+    """
+    import time
+    start_time = time.time()
+    
+    try:
+        # Clear previous knowledge base
+        prolog_reasoner.clear()
+        
+        # Convert premises to Prolog format using ELMS functions
+        prolog_facts = []
+        for premise in request.premises:
+            prolog = _convert_nl_to_prolog(premise, vectionary_parser)
+            if prolog:
+                prolog_facts.append(prolog)
+                if " :- " in prolog:
+                    prolog_reasoner.add_rule(prolog)
+                else:
+                    prolog_reasoner.add_fact(prolog)
+            elif "(" in premise or " :- " in premise:
+                # Already in Prolog format
+                prolog_facts.append(premise)
+                if " :- " in premise:
+                    prolog_reasoner.add_rule(premise)
+                else:
+                    prolog_reasoner.add_fact(premise)
+        
+        # Convert query to Prolog format using ELMS functions
+        prolog_query = None
+        if request.query:
+            # Normalize the query - remove apostrophes for consistent parsing
+            normalized_query = request.query.replace("'s ", " ").replace("'s?", "?").replace("'s.", ".")
+            prolog_query = _convert_query_to_prolog(normalized_query, vectionary_parser)
+            if not prolog_query:
+                # Try to use the query as-is
+                prolog_query = request.query
+        
+        # Query Prolog
+        success, results = prolog_reasoner.query(prolog_query)
+        
+        elapsed_time = time.time() - start_time
+        
+        return PrologInferenceResponse(
+            success=success,
+            premises=request.premises,
+            query=request.query,
+            prolog_facts=prolog_facts,
+            conclusions=results,
+            conclusions_count=len(results),
+            reasoning_time=elapsed_time
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prolog inference failed: {str(e)}")
+
+
+class HybridVerifyRequest(BaseModel):
+    premises: List[str]
+    conclusion: str
+
+class HybridVerifyResponse(BaseModel):
+    valid: bool
+    confidence: float
+    elms_valid: bool
+    prolog_valid: bool
+    reasoning_time: float
+
+
+@app.post("/hybrid/verify", response_model=HybridVerifyResponse)
+async def hybrid_verify(request: HybridVerifyRequest):
+    """
+    Verify conclusion using hybrid reasoning (ELMS + Prolog)
+    """
+    try:
+        import time
+        start_time = time.time()
+        
+        # Clear previous knowledge base
+        hybrid_reasoner.clear()
+        
+        # Verify conclusion
+        result = hybrid_reasoner.verify_conclusion(request.premises, request.conclusion)
+        
+        elapsed_time = time.time() - start_time
+        
+        return HybridVerifyResponse(
+            valid=result['valid'],
+            confidence=result['confidence'],
+            elms_valid=result['elms_result'].get('valid', False),
+            prolog_valid=result['prolog_valid'],
+            reasoning_time=elapsed_time
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Hybrid verification failed: {str(e)}")
 
 
 # Mount static files for the HTML interface

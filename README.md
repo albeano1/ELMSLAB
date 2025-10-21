@@ -1,463 +1,187 @@
-# Enhanced Natural Language to Logic API with First-Order Logic Support
+# ELMS - Enhanced Logic Modeling System
 
-A production-ready API that converts natural English into both propositional and first-order logic statements with advanced reasoning capabilities, built as part of the ELMSLAB project for advancing true reasoning models.
-
-## Project Overview
-
-This project addresses the challenge of converting natural language text into formal logic formulas and performing automated logical reasoning. Unlike current "reasoning models" that merely mimic reasoning through text generation, this system provides a foundation for true automated reasoning using human-readable language.
-
-## Features
-
-### 🧠 **Triple Logic Support**
-- **Propositional Logic**: Complete support for AND (∧), OR (∨), NOT (¬), IMPLIES (→), and IFF (↔)
-- **First-Order Logic**: Universal (∀) and existential (∃) quantifiers with predicates and individual constants
-- **Temporal Logic**: Enhanced temporal operators (◯ Next, ◊ Eventually, □ Always, ● Previous) with component extraction
-- **Automatic Detection**: Smart logic type detection based on natural language patterns
-
-### 🔍 **Advanced Natural Language Processing**
-- **spaCy Integration**: Real linguistic intelligence with dependency parsing
-- **Proper Negation Handling**: Correctly processes negation using spaCy's `neg` dependency
-- **Quantifier Recognition**: Detects "All", "Some", "Every", "There exists" patterns
-- **Individual Constants**: Handles proper names like "Socrates", "John", etc.
-- **Enhanced Temporal Parsing**: Extracts subject, action, destination, and temporal expressions
-- **Component Preservation**: Maintains all semantic information in temporal logic formulas
-
-### ⚡ **Powerful Inference Engine**
-- **Propositional Inference**: 100% accurate truth table-based reasoning
-- **First-Order Detection**: Identifies when advanced theorem proving is needed
-- **Pattern Recognition**: Detects common inference patterns (Modus Ponens, Modus Tollens, etc.)
-- **Fallacy Detection**: Identifies invalid arguments with counterexamples
-- **Explanation Generation**: Human-readable explanations of reasoning results
-
-### 🕒 **Enhanced Temporal Logic**
-- **Component Extraction**: Preserves subject, action, destination, and temporal information
-- **Proper Temporal Operators**: Uses standard LTL symbols (◯, ◊, □, ●)
-- **Alternative Representations**: Provides LTL, MTL, and First-Order temporal logic formats
-- **Real-World Applications**: Enables schedule verification, requirement checking, and planning
-
-### 🌐 **User-Friendly Interface**
-- **Interactive Web UI**: Modern HTML interface with example buttons
-- **REST API**: Full REST API with comprehensive endpoints
-- **CORS Support**: Works seamlessly in web browsers
-- **Real-time Testing**: Instant feedback on logical reasoning
-
-## Current Project Structure
-
-```
-ELMSLAB/
-├── enhanced_fol_api.py          # 🚀 MAIN API: Enhanced First-Order Logic API
-├── logic_ui.html                # 🌐 Interactive web interface
-├── src/                         # Source code modules
-│   ├── models/                  # Logic data structures
-│   │   ├── propositional_logic.py    # Propositional logic models
-│   │   └── first_order_logic.py      # First-order logic models
-│   ├── core/                    # Core processing modules
-│   │   └── first_order_parser.py     # First-order logic parser
-│   └── utils/                   # Utility functions
-│       └── formula_utils.py
-├── requirements.txt             # Dependencies
-├── README.md                   # This file
-├── QUICK_START.md              # Quick start guide
-└── venv/                       # Virtual environment
-```
-
-## 🚀 Quick Start Guide
 
 ### Prerequisites
-- Python 3.8 or higher
-- Virtual environment (already set up in this project)
 
-### 1. Setup (One-time)
 ```bash
-# Navigate to the project directory
-cd /path/to/ELMSLAB
-
-# Activate the virtual environment
-source venv/bin/activate
-
-# Install dependencies (if needed)
+# Install dependencies
 pip install -r requirements.txt
 
-# Install spaCy language model (if needed)
-python -m spacy download en_core_web_sm
 
-# Set up environment variables (for LLM integration)
-cp env.example .env
-# Edit .env file and add your Anthropic API key
+### CLI Usage
+
+```bash
+# Basic example
+python3 ELMS.py "Bob walks. Does Bob walk?" --env prod
+
+# Complex reasoning
+python3 ELMS.py "A lighthouse shines whenever night falls. Tonight, the sky is full of stars. Is the lighthouse shining?" --env prod
+
+# JSON output
+python3 ELMS.py "Jack gave Jill a book. Does Jill have the book?" --env prod --json
+
+# Query knowledge base (no premises required)
+python3 ELMS.py "Is John a doctor?" --env prod
 ```
 
-### 2. Start the Enhanced API Server
+### Web UI
+
 ```bash
-# Make sure you're in the project directory and venv is activated
+# Start the API server
 source venv/bin/activate
-python enhanced_fol_api.py
+python3 serv_vectionary.py &
+
+# Open browser to webdemo.html
+open webdemo.html
 ```
 
-The API will start at `http://127.0.0.1:8000`
+## Architecture
 
-## 🕒 Enhanced Temporal Logic: Before vs After
 
-### ❌ **Old Parser (Too Simplistic)**
-```json
-{
-  "temporal_formula": "Future(go)",
-  "confidence": 0.8,
-  "problems": [
-    "Lost the subject (who is going?)",
-    "Lost the destination (go where?)", 
-    "Lost specific temporal information (when exactly?)"
-  ]
-}
+```
+User Input
+    ↓
+Vectionary API → Semantic Trees (lemmas, roles, marks, definitions)
+    ↓
+Formula Generation → predicate(args) from tree data
+    ↓
+Tree-Based Reasoning → Match using tree lemmas, roles, marks
+    ↓
+Formal Theorem → With pronoun resolution & temporal markers
 ```
 
-### ✅ **New Enhanced Parser (Comprehensive)**
-```json
-{
-  "temporal_formula": "◯(go_to_school(i))",
-  "confidence": 0.9,
-  "components": {
-    "temporal_operator": "tomorrow",
-    "predicate": "go_to_school(i)",
-    "subject": "i",
-    "action": "go", 
-    "destination": "school",
-    "time_reference": "tomorrow"
-  },
-  "alternative_representations": {
-    "ltl": "◯(go_to_school(i))",
-    "mtl": "F[1d,1d](go_to_school(i))",
-    "first_order": "∃t(tomorrow(t) ∧ at(t, go_to_school(i)))"
-  }
-}
-```
+### Core Files
 
-### 🎯 **Key Improvements**
-- **Preserves All Information**: Subject, action, destination, and temporal context
-- **Proper Temporal Operators**: Uses standard LTL symbols (◯ for next, ◊ for eventually, □ for always, ● for previous)
-- **Multiple Representations**: Provides LTL, MTL, and First-Order temporal logic formats
-- **Real-World Ready**: Enables actual reasoning about schedules, requirements, and planning
+**CLI (Independent):**
+- `ELMS.py` - **Fully independent CLI** with built-in parsing, reasoning, and API client
+  - Contains complete Vectionary integration
+  - No dependencies on other project files
+  - Can be used standalone
 
-### 3. Test the System
+**Web (Shared Backend):**
+- `vectionary_98_api.py` - FastAPI web server
+- `vectionary_98_percent_solution.py` - Backend reasoning engine (used by web API)
+- `logic_ui_final.html` - Web user interface
 
-#### Option A: Use the Web Interface (Recommended)
-1. Open `logic_ui.html` in your browser
-2. Try the example buttons:
-   - **Socrates Example**: Classic first-order logic
-   - **Business Logic**: Complex propositional reasoning
-   - **Birds Example**: Universal quantifiers
-   - **Propositional Logic**: Simple conditionals
+**Knowledge Base:**
+- `vectionary_knowledge_base.py` - Knowledge base management
+- `vectionary_knowledge_base.json` - Knowledge base data
 
-#### Option B: Test with curl commands
+**Reference:**
+- `vectionary.py` - API reference implementation
 
-**Test Propositional Logic:**
+**Testing:**
+- `tests/` - Test suite
+- `test_edge_cases.sh` - Edge case testing script
+
+## Examples
+
+### Simple Direct Matching
 ```bash
-curl -X POST "http://127.0.0.1:8000/infer" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "premises": ["If it rains then the ground is wet", "It is raining"],
-       "conclusion": "The ground is wet",
-       "logic_type": "propositional"
-     }' | python3 -m json.tool
+Input: "Bob walks. Does Bob walk?"
+Output: Valid (tree lemma matching)
+Theorem: walk(Bob) → walk(Bob)
 ```
 
-**Test First-Order Logic:**
+### Universal Quantifiers
 ```bash
-curl -X POST "http://127.0.0.1:8000/infer" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "premises": ["All humans are mortal", "Socrates is human"],
-       "conclusion": "Socrates is mortal",
-       "logic_type": "auto"
-     }' | python3 -m json.tool
+Input: "All birds can fly. Tweety is a bird. Can Tweety fly?"
+Output: Valid (universal instantiation)
+Theorem: ∀x(bird(x) → fly(x)) ∧ bird(Tweety) → fly(Tweety)
 ```
 
-**Test Natural Language Conversion:**
+### Conditional Reasoning
 ```bash
-curl -X POST "http://127.0.0.1:8000/convert" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "text": "All humans are mortal",
-       "logic_type": "auto"
-     }' | python3 -m json.tool
+Input: "A lighthouse shines whenever night falls. Tonight, the sky is full of stars. Is the lighthouse shining?"
+Output: Valid (conditional reasoning with temporal markers)
+Theorem: ∀x(fall(night) → shine(lighthouse)) ∧ be(sky, stars) → shine(lighthouse)
 ```
 
-### 4. View API Documentation
-Visit `http://127.0.0.1:8000/docs` for interactive API documentation.
-## 📚 API Endpoints
-
-### Convert Text to Logic
-```http
-POST /convert
-Content-Type: application/json
-
-{
-  "text": "All humans are mortal",
-  "logic_type": "auto",
-  "include_truth_table": true
-}
-```
-
-**Response (First-Order Logic)**:
-```json
-{
-  "original_text": "All humans are mortal",
-  "first_order_formula": "∀h((humans(h) → mortal(h)))",
-  "formula_type": "QuantifiedFormula",
-  "confidence": 0.8,
-  "variables": ["h"],
-  "constants": [],
-  "predicates": ["humans(h)", "mortal(h)"],
-  "logic_type": "first_order",
-  "detected_logic_type": "first_order"
-}
-```
-
-**Response (Propositional Logic)**:
-```json
-{
-  "original_text": "It is not raining and it is cold",
-  "propositional_formula": "(¬it_rain ∧ cold)",
-  "confidence": 0.8,
-  "atoms": ["cold", "it_rain"],
-  "logic_type": "propositional",
-  "detected_logic_type": "propositional"
-}
-```
-
-### Logical Inference
-```http
-POST /infer
-Content-Type: application/json
-
-{
-  "premises": [
-    "If it rains then the ground is wet",
-    "It is raining"
-  ],
-  "conclusion": "The ground is wet",
-  "logic_type": "propositional"
-}
-```
-
-**Response (Valid Propositional Inference)**:
-```json
-{
-  "valid": true,
-  "premises": ["(it_rain → ground_wet)", "it_rain"],
-  "conclusion": "ground_wet",
-  "implication": "((it_rain → ground_wet) ∧ it_rain) → ground_wet",
-  "logic_type": "propositional",
-  "explanation": "✓ Valid inference: The conclusion logically follows from the premises.",
-  "counterexample": null,
-  "truth_table_summary": {
-    "is_tautology": true,
-    "is_contradiction": false,
-    "is_satisfiable": true
-  }
-}
-```
-
-**Response (First-Order Logic)**:
-```json
-{
-  "valid": "unknown",
-  "premises": ["∀h((humans(h) → mortal(h)))", "human(Socrates)"],
-  "conclusion": "mortal(Socrates)",
-  "logic_type": "first_order",
-  "explanation": "First-order logic inference requires sophisticated theorem proving. This is a simplified representation.",
-  "note": "Full first-order inference engine not yet implemented"
-}
-```
-
-
-
-## 💡 Working Examples
-
-### First-Order Logic Examples
-| Natural Language | First-Order Logic | Type |
-|------------------|-------------------|------|
-| "All humans are mortal" | `∀h((humans(h) → mortal(h)))` | Universal Quantifier |
-
-
-| "Some birds cannot fly" | `∃b((birds(b) ∧ ¬fly(b)))` | Existential Quantifier |
-| "Socrates is human" | `human(Socrates)` | Individual Statement |
-| "Every student studies" | `∀s((student(s) → studies(s)))` | Universal Quantifier |
-
-### Propositional Logic Examples
-| Natural Language | Propositional Logic | Type |
-|------------------|-------------------|------|
-| "It is not raining" | `¬it_rain` | Negation |
-| "It is raining and the ground is wet" | `(it_rain ∧ ground_wet)` | Conjunction |
-| "Either it is sunny or it is cloudy" | `(it_sunny ∨ it_cloudy)` | Disjunction |
-| "If it rains, then the ground will be wet" | `(it_rain → ground_wet)` | Implication |
-
-### Inference Examples
-| Premises | Conclusion | Valid? | Logic Type |
-|----------|------------|--------|------------|
-| "If it rains then the ground is wet", "It is raining" | "The ground is wet" | ✅ Valid | Propositional |
-| "All humans are mortal", "Socrates is human" | "Socrates is mortal" | 🔍 First-order | First-Order |
-| "If it rains then the ground is wet", "The ground is wet" | "It is raining" | ❌ Invalid | Propositional |
-
-## 🧪 Testing the System
-
-### Quick Test (Recommended)
-1. **Start the API**: `python enhanced_fol_api.py`
-2. **Open the Web Interface**: Open `logic_ui.html` in your browser
-3. **Try the examples**: Click the example buttons to test different scenarios
-
-### Manual Testing with curl
-
-**Test Propositional Logic (Modus Ponens):**
+### Temporal & Pronouns
 ```bash
-curl -X POST "http://127.0.0.1:8000/infer" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "premises": ["If it rains then the ground is wet", "It is raining"],
-       "conclusion": "The ground is wet",
-       "logic_type": "propositional"
-     }'
+Input: "John opened the door. Then he entered the room. Did John enter the room?"
+Output: Valid (pronoun resolution + temporal markers)
+Theorem: (open(John, door) ∧ [then] enter(John, room)) → enter(John, room)
 ```
-**Expected**: `"valid": true`
 
-**Test First-Order Logic:**
+## API Environments
+
+- `--env prod` - Production Vectionary API (default)
+- `--env dev` - Development API endpoint
+- `--env local` - Local Vectionary server
+
+## Reasoning Strategies
+
+The system uses **3 tree-based strategies** (no hardcoding):
+
+1. **Universal Reasoning** - Matches tree lemmas and semantic roles
+2. **Conditional Reasoning** - Uses tree marks for temporal/conditional logic
+3. **Direct Matching** - Compares premise and conclusion trees
+
+
+**Zero text pattern matching** (`if 'word' in text`)
+
+## Web Features
+
+- **Result Caching** - Instant mode switching between analysis types
+- **Formal Theorems** - Displays actual theorems, not placeholders
+- **Parse Trees** - Shows full Vectionary semantic trees
+- **Semantic Analysis** - Displays definitions and roles
+- **Claude Integration** - Compare with Claude's reasoning (if configured)
+
+
+
+## Requirements
+
+- Python 3.8+ (3.11 or 3.12 recommended for best compatibility)
+- Core: `requests`, `python-dotenv`
+- Optional: `fastapi`, `uvicorn`, `pytest` (for web server and testing)
+- See `requirements.txt` for full list
+
+## Configuration
+
+Create a `.env.local` file (optional):
 ```bash
-curl -X POST "http://127.0.0.1:8000/infer" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "premises": ["All humans are mortal", "Socrates is human"],
-       "conclusion": "Socrates is mortal",
-       "logic_type": "auto"
-     }'
-```
-**Expected**: `"valid": "unknown"` (first-order logic detected)
 
-**Test Natural Language Conversion:**
-```bash
-curl -X POST "http://127.0.0.1:8000/convert" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "text": "Some birds cannot fly",
-       "logic_type": "auto"
-     }'
-```
-**Expected**: `"first_order_formula": "∃b((birds(b) ∧ ¬fly(b)))"`
-
-## 🔧 Technical Details
-
-### Dual Logic Architecture
-- **Propositional Logic**: Complete support for all logical connectives (¬, ∧, ∨, →, ↔)
-- **First-Order Logic**: Universal (∀) and existential (∃) quantifiers with predicates
-- **Smart Detection**: Automatic logic type detection based on natural language patterns
-- **Formula Parsing**: Robust parser with proper operator precedence and parentheses handling
-
-### Advanced Natural Language Processing
-- **spaCy Integration**: Real linguistic intelligence with dependency parsing
-- **Negation Detection**: Uses spaCy's `neg` dependency for accurate negation handling
-- **Quantifier Recognition**: Detects "All", "Some", "Every", "There exists" patterns
-- **Individual Constants**: Handles proper names and specific entities
-
-### Inference Engine
-- **Propositional Inference**: 100% accurate truth table-based reasoning
-- **First-Order Detection**: Identifies when advanced theorem proving is needed
-- **Pattern Recognition**: Detects common inference patterns (Modus Ponens, Modus Tollens, etc.)
-- **Counterexample Generation**: Provides scenarios where invalid inferences fail
-
-### API Features
-- **FastAPI**: Modern, fast web framework with automatic documentation
-- **CORS Support**: Works seamlessly in web browsers
-- **Pydantic**: Data validation and serialization
-- **Error Handling**: Comprehensive error management with helpful messages
-
-## 🎯 Current Capabilities
-
-### ✅ **Fully Working**
-- **Propositional Logic Conversion**: Natural language → propositional formulas
-- **Propositional Inference**: 100% accurate reasoning with truth tables
-- **First-Order Logic Conversion**: Natural language → first-order formulas
-- **Logic Type Detection**: Automatic detection of propositional vs first-order
-- **Web Interface**: Interactive HTML interface with example buttons
-- **CORS Support**: Browser-compatible API requests
-- **Negation Handling**: Proper negation parsing and representation
-
-### 🔍 **Partially Working**
-- **First-Order Inference**: Detects first-order logic but requires advanced theorem proving
-- **Complex Quantifiers**: Basic universal and existential quantifier support
-
-### 🚧 **Future Enhancements**
-- **Full First-Order Theorem Proving**: Complete inference engine for quantified logic
-- **Advanced Pattern Recognition**: More sophisticated inference pattern detection
-- **Multi-language Support**: Support for multiple natural languages
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**Port Already in Use:**
-```bash
-lsof -i :8000
-kill <PID>
+# Edit .env.local and add your actual API keys
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
 ```
 
-**Virtual Environment Issues:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+## Troubleshooting
+
+### API Rate Limiting
+If you encounter rate limits:
+- Wait 1-5 minutes between requests
+- Use a local Vectionary server (`--env local`)
+- Use simpler sentences
+
+## Development
+
+### Project Structure
+```
+ELMSLAB/
+├── ELMS.py                              # Standalone CLI (fully independent)
+├── vectionary_98_api.py                 # Web API server
+├── vectionary_98_percent_solution.py    # Backend for web (not used by CLI)
+├── logic_ui_final.html                  # Web UI
+├── vectionary_knowledge_base.py         # Knowledge base
+├── vectionary_knowledge_base.json       # KB data
+├── vectionary.py                        # API reference
+├── requirements.txt                     # Dependencies
+├── env.example                          # Config template
+├── tests/                               # Test suite
+│   ├── __init__.py
+│   ├── test_edge_cases.py
+│   └── README.md
+└── venv/                                # Virtual environment
 ```
 
-**spaCy Model Missing:**
-```bash
-python -m spacy download en_core_web_sm
-```
+## License
 
-**API Not Responding:**
-1. Check if the server is running: `ps aux | grep python`
-2. Restart the API: `pkill -f "python.*api" && python enhanced_fol_api.py`
 
-**Web Interface "Load Failed" Error:**
-- Make sure the API server is running on `http://127.0.0.1:8000`
-- Check browser console for CORS errors
-- Try refreshing the page (Cmd+R or F5)
 
-## 🎯 Quick Reference
-
-### Start the System
-```bash
-cd /path/to/ELMSLAB
-source venv/bin/activate
-python enhanced_fol_api.py
-```
-
-### Test Propositional Logic
-```bash
-curl -X POST "http://127.0.0.1:8000/infer" \
-     -H "Content-Type: application/json" \
-     -d '{"premises": ["If it rains then the ground is wet", "It is raining"], "conclusion": "The ground is wet", "logic_type": "propositional"}'
-```
-
-### Test First-Order Logic
-```bash
-curl -X POST "http://127.0.0.1:8000/infer" \
-     -H "Content-Type: application/json" \
-     -d '{"premises": ["All humans are mortal", "Socrates is human"], "conclusion": "Socrates is mortal", "logic_type": "auto"}'
-```
-
-### Use Web Interface
-Open `logic_ui.html` in your browser and click the example buttons.
+## Credits
 
 ---
 
-## 🚀 **Ready to Use!**
 
-This enhanced natural language to logic API is now ready for use with:
-- ✅ **Working propositional logic inference**
-- ✅ **First-order logic conversion and detection**
-- ✅ **Interactive web interface**
-- ✅ **CORS support for browser compatibility**
-- ✅ **Comprehensive error handling**
-
-**Start the system and begin testing logical reasoning with natural language!**
-
----
-
-*This project is part of the ELMS LAB - Advancing True Reasoning Models*
