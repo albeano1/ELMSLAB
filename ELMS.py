@@ -3393,9 +3393,28 @@ Examples:
                 print()
             
             # Handle comma-separated queries (conjunctions)
+            # Only split on commas that are outside of parentheses (i.e., between predicates)
             if ',' in prolog_query and 'X' in prolog_query:
-                # Split the query into parts
-                parts = [p.strip() for p in prolog_query.split(',')]
+                # Count parentheses to determine if comma is inside or outside
+                parts = []
+                current_part = ""
+                paren_count = 0
+                for char in prolog_query:
+                    if char == '(':
+                        paren_count += 1
+                        current_part += char
+                    elif char == ')':
+                        paren_count -= 1
+                        current_part += char
+                    elif char == ',' and paren_count == 0:
+                        # This comma is between predicates
+                        parts.append(current_part.strip())
+                        current_part = ""
+                    else:
+                        current_part += char
+                # Add the last part
+                if current_part.strip():
+                    parts.append(current_part.strip())
                 # Query each part separately and find the intersection
                 all_results = []
                 for part in parts:
