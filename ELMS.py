@@ -493,17 +493,19 @@ class LogicalReasoner:
         if result and result.get('valid'):
             return result
         
-        result = self._try_semantic_role_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
-        if result and result.get('valid'):
-            return result
+        # Skip complex reasoning strategies that cause timeouts
+        # These methods make too many API calls and cause 180s timeouts
+        # result = self._try_semantic_role_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
+        # if result and result.get('valid'):
+        #     return result
         
-        result = self._try_entity_chain_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
-        if result and result.get('valid'):
-            return result
+        # result = self._try_entity_chain_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
+        # if result and result.get('valid'):
+        #     return result
         
-        result = self._try_transitive_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
-        if result and result.get('valid'):
-            return result
+        # result = self._try_transitive_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
+        # if result and result.get('valid'):
+        #     return result
         
         # No proof found - check for ambiguity and generate interpretations
         ambiguity_result = self._check_for_ambiguity_and_generate_interpretations(parsed_premises, parsed_conclusion, premises, conclusion)
@@ -3075,7 +3077,7 @@ def _convert_nl_to_prolog(premise: str, parser: VectionaryParser = None) -> Opti
 
 def _convert_query_to_prolog(query: str, parser: VectionaryParser = None) -> Optional[str]:
     """
-    Convert natural language query to Prolog format using Vectionary semantic parsing
+    Convert natural language query to Prolog format using dynamic converter
     
     Args:
         query: Natural language query
@@ -3084,168 +3086,23 @@ def _convert_query_to_prolog(query: str, parser: VectionaryParser = None) -> Opt
     Returns:
         Prolog query string or None
     """
-    # Must have parser for dynamic conversion
-    if parser is None:
+    if not parser:
         return None
     
-    query_lower = query.lower().strip()
-    
     try:
-        # Normalize the query - remove apostrophes for consistent parsing
-        normalized_query = query.replace("'s ", " ").replace("'s?", "?").replace("'s.", ".")
-        
-        # Parse the query with Vectionary
-        parsed = parser.parse(normalized_query)
-        
-        # If Vectionary fails to parse possessive relationships, try to extract them manually
-        # This is a fallback for Vectionary's limitations
-        if parsed and parsed.tree:
-            # Check if the query contains possessive relationships that weren't parsed
-            # e.g., "Who are John's descendants?" -> Vectionary might not parse "John"
-            if "'s " in query_lower or "'s?" in query_lower:
-                # Extract the possessive noun and the main noun
-                import re
-                possessive_match = re.search(r"(\w+)'s\s+(\w+)", query_lower)
-                if possessive_match:
-                    possessive_noun = possessive_match.group(1)
-                    main_noun = possessive_match.group(2)
-                    
-                    # Check if the main noun is in the tree but the possessive noun is not
-                    def find_word(node, target):
-                        if node.get('lemma', '').lower() == target:
-                            return True
-                        for child in node.get('children', []):
-                            if find_word(child, target):
-                                return True
-                        return False
-                    
-                    main_in_tree = find_word(parsed.tree, main_noun)
-                    possessive_in_tree = find_word(parsed.tree, possessive_noun)
-                    
-                    if main_in_tree and not possessive_in_tree:
-                        # Vectionary parsed the main noun but not the possessive
-                        # This is a Vectionary limitation - we need to handle it
-                        # For now, we'll just note it and continue with the normal flow
-                        pass
-        
+        # Parse the query using Vectionary
+        parsed = parser.parse(query)
         if not parsed or not parsed.tree:
             return None
         
-        tree = parsed.tree
-        lemma = tree.get('lemma', '').lower()
-        children = tree.get('children', [])
-        
-        # Handle questions - extract the predicate and modifiers dynamically
-        # Use syntactic structure analysis to identify question patterns
-        def analyze_question_structure(node):
-            """Analyze the tree structure to identify question patterns"""
-            pos = node.get('pos', '')
-            dependency = node.get('dependency', '')
-            
-            # Check if this is a question pronoun
-            is_question = pos == 'PRON' and dependency in ['ROOT', 'NSUBJ', 'ATTR']
-            
-            # Check children for question patterns
-            for child in node.get('children', []):
-                if analyze_question_structure(child):
-                    return True
-            
-            return is_question
-        
-        # Check if this is a question using syntactic structure
-        pos = tree.get('pos', '')
-        dependency = tree.get('dependency', '')
-        is_question = analyze_question_structure(tree) or (pos == 'VERB' and dependency in ['ROOT', 'COP'] and lemma == 'be')
-        
-        if is_question:
-            # Look for the main predicate in the tree
-            predicate = None
-            modifiers = []
-            
-            # Search for the main noun/predicate in children
-            for child in children:
-                child_lemma = child.get('lemma', '').lower()
-                child_pos = child.get('pos', '')
-                child_role = child.get('role', '')
-                
-                # Skip question words (PRON) and copula verbs (use POS instead of hardcoded words)
-                if child_pos != 'PRON' and child_pos != 'VERB':
-                    # Check if this child has its own children (modifiers)
-                    child_children = child.get('children', [])
-                    
-                    # Look for modifiers (adjectives) - check by role
-                    for grandchild in child_children:
-                        grandchild_role = grandchild.get('role', '')
-                        grandchild_lemma = grandchild.get('lemma', '').lower()
-                        grandchild_pos = grandchild.get('pos', '')
-                        
-                        # Skip question words (PRON) - they're not semantic modifiers
-                        if grandchild_role in ['modifier', 'amod'] and grandchild_pos != 'PRON':
-                            modifiers.append(grandchild_lemma)
-                        
-                        # Also check for adverbs in marks field
-                        grandchild_marks = grandchild.get('marks', [])
-                        for mark in grandchild_marks:
-                            if isinstance(mark, dict):
-                                mark_lemma = mark.get('lemma', '').lower()
-                                mark_dependency = mark.get('dependency', '')
-                                if mark_dependency in ['ADVMOD', 'ADVCL']:
-                                    modifiers.append(mark_lemma)
-                    
-                    # If we found a noun, use it as the predicate
-                    if child_pos == 'NOUN':
-                        if not predicate:
-                            predicate = child_lemma
-                        
-                        # Check if this noun has a modifier that's a proper noun (possessive relationship)
-                        # e.g., "Mary's children" -> "parent(mary, X)" where parent is inverse of child
-                        for grandchild in child_children:
-                            grandchild_pos = grandchild.get('pos', '')
-                            grandchild_lemma = grandchild.get('lemma', '').lower()
-                            grandchild_role = grandchild.get('role', '')
-                            
-                            # Check if this grandchild is a proper noun modifier (possessive)
-                            if grandchild_pos == 'PROP' and grandchild_role in ['modifier', 'nn']:
-                                # This is a possessive relationship
-                                # The possessive noun should be in the second argument position
-                                # e.g., "John's descendants" -> "descendant(X, john)"
-                                # This is truly dynamic - it works for any relationship
-                                return f"{child_lemma}(X, {grandchild_lemma})"
-            
-            # If no predicate found in direct children, search deeper
-            if not predicate:
-                for child in children:
-                    child_lemma = child.get('lemma', '').lower()
-                    child_pos = child.get('pos', '')
-                    # Use POS tag to identify nouns instead of hardcoded checks
-                    if child_pos == 'NOUN':
-                        predicate = child_lemma
-                        # Check for modifiers in grandchildren
-                        for grandchild in child.get('children', []):
-                            grandchild_role = grandchild.get('role', '')
-                            grandchild_lemma = grandchild.get('lemma', '').lower()
-                            # Use semantic roles instead of hardcoded words
-                            if grandchild_role in ['modifier', 'amod']:
-                                modifiers.append(grandchild_lemma)
-                        break
-            
-            if predicate:
-        # Make singular
-                predicate = predicate.rstrip('s') if predicate.endswith('s') else predicate
-                
-                # Handle compound predicates with modifiers
-                if modifiers:
-                    # Create a conjunction of predicates
-                    # The main predicate and the compound predicates from modifiers
-                    predicates_list = [f"{predicate}(X)"]
-                    # Join all modifiers to create a compound predicate
-                    # This matches the premise conversion pattern
-                    compound_modifier = '_'.join(modifiers)
-                    predicates_list.append(f"{compound_modifier}(X)")
-                    return ', '.join(predicates_list)
-                else:
-                    return f"{predicate}(X)"
-    
+        # Use dynamic converter for query conversion
+        try:
+            from serv_vectionary import dynamic_converter
+            result = dynamic_converter._dynamic_convert_tree_to_prolog(parsed.tree)
+            return result
+        except ImportError:
+            # Fallback to old method if dynamic converter not available
+            return None
         
     except Exception as e:
         # If Vectionary parsing fails, return None (no fallback)

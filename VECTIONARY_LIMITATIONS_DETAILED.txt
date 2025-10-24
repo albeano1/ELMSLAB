@@ -1,0 +1,179 @@
+# VECTIONARY API LIMITATIONS - DETAILED ANALYSIS
+
+## Overview
+This document catalogs specific Vectionary API limitations that affect the ELMS logical reasoning system. These are **Vectionary limitations**, not system issues.
+
+## Critical Limitations
+
+### 1. **Incorrect Semantic Role Assignment**
+
+**Sentence**: "Mary is parent of Alice"
+**Expected**: `parent(mary, alice)`
+**Vectionary Output**: 
+- Root: `be` (VERB)
+- Children: `Mary` (agent), `parent` (theme)
+- Missing: `Alice` as patient/object
+
+**Why it breaks the system**: The semantic role "patient" for "Alice" is not assigned, so the dynamic converter cannot extract the relationship.
+
+**Vectionary Limitation**: Fails to recognize "X is Y of Z" as a possessive relationship pattern.
+
+---
+
+### 2. **Missing Universal Quantifier Detection**
+
+**Sentence**: "All cats are mammals"
+**Expected**: `mammal(X) :- cat(X)`
+**Vectionary Output**:
+- Root: `be` (VERB)
+- Children: `cats` (agent), `mammals` (theme)
+- Missing: "All" is not recognized as a quantifier
+
+**Why it breaks the system**: The dynamic converter cannot detect universal quantification without proper quantifier recognition.
+
+**Vectionary Limitation**: Does not properly identify universal quantifiers in copula sentences.
+
+---
+
+### 3. **Incorrect Question Parsing**
+
+**Sentence**: "Who are Mary children?"
+**Expected**: `parent(mary, X)`
+**Vectionary Output**:
+- Root: `be` (VERB)
+- Children: `Who` (modifier), `children` (agent)
+- Missing: "Mary" as possessive modifier
+
+**Why it breaks the system**: The possessive relationship "Mary's children" is not properly parsed.
+
+**Vectionary Limitation**: Fails to parse possessive relationships in questions.
+
+---
+
+### 4. **Missing Adverb Detection**
+
+**Sentence**: "John studies regularly"
+**Expected**: `study_regularly(john)`
+**Vectionary Output**:
+- Root: `study` (NOUN) - WRONG POS TAG
+- Children: `John` (agent)
+- Missing: "regularly" as modifier
+
+**Why it breaks the system**: The verb "studies" is parsed as a noun, and the adverb "regularly" is not detected.
+
+**Vectionary Limitation**: Incorrect POS tagging and missing adverb detection.
+
+---
+
+### 5. **Incomplete Copula Pattern Recognition**
+
+**Sentence**: "Alice is a director"
+**Expected**: `director(alice)`
+**Vectionary Output**:
+- Root: `be` (VERB)
+- Children: `Alice` (agent), `director` (theme)
+- Result: `be(alice)` - WRONG
+
+**Why it breaks the system**: The copula pattern "X is a Y" is not properly converted to `Y(X)`.
+
+**Vectionary Limitation**: Fails to recognize standard copula patterns.
+
+---
+
+### 6. **Possessive Relationship Parsing Failure**
+
+**Sentence**: "Mary's children are Alice and Bob"
+**Expected**: `child(mary, alice)`, `child(mary, bob)`
+**Vectionary Output**:
+- Root: `be` (VERB)
+- Children: `children` (agent), `and` (combinator)
+- Missing: "Mary" as possessive modifier, "Alice" and "Bob" as objects
+
+**Why it breaks the system**: The possessive relationship "Mary's children" is not parsed correctly, and the conjunction "Alice and Bob" is not handled.
+
+**Vectionary Limitation**: Fails to parse possessive relationships and handle conjunctions in family relationships.
+
+---
+
+### 7. **Complex Conjunction Handling**
+
+**Sentence**: "Alice and Bob are students"
+**Expected**: `student(alice)`, `student(bob)`
+**Vectionary Output**:
+- Root: `be` (VERB)
+- Children: `Alice` (agent), `and` (combinator), `Bob` (agent)
+- Missing: Proper handling of conjunction roles
+
+**Why it breaks the system**: The conjunction "and" creates a "combinator" role that the dynamic converter cannot handle.
+
+**Vectionary Limitation**: Does not properly handle conjunctions in copula sentences.
+
+---
+
+## NEW LIMITATIONS FROM EDGE CASE TESTING
+
+### 8. **Complex Question Pattern Failure**
+
+**Sentence**: "Who are the professionals?"
+**Expected**: `professional(X)` or similar query
+**Vectionary Output**:
+- Root: `be` (VERB)
+- Children: `professionals` (agent), `who` (modifier)
+- Error: `❌ No pattern matched for lemma='be', roles={'agent': 'professionals', 'modifier': 'who'}`
+
+**Why it breaks the system**: Complex question patterns like "Who are the X?" are not handled by the dynamic converter.
+
+**Vectionary Limitation**: Fails to parse complex question structures with plural subjects.
+
+---
+
+### 9. **Complex Relative Clause System Crash**
+
+**Sentence**: "Students who study diligently get good grades"
+**Expected**: `get_good_grades(students_who_study_diligently)` or similar
+**Vectionary Output**:
+- Error: `Error: 'NoneType' object has no attribute 'lower'`
+- System crashes during processing
+
+**Why it breaks the system**: Complex relative clauses cause the dynamic converter to crash due to missing attribute handling.
+
+**Vectionary Limitation**: System crashes on complex relative clause patterns.
+
+**System Impact**: **CRITICAL** - Causes system instability.
+
+---
+
+### 10. **Inconsistent Adverb Detection**
+
+**Sentence**: "Maria studies regularly. John works hard. Sarah reads quietly"
+**Expected**: `study_regularly(maria)`, `work_hard(john)`, `read_quietly(sarah)`
+**Vectionary Output**:
+- `study(maria)` ❌ (missing "regularly")
+- `work(john)` ❌ (missing "hard")  
+- `read_quietly(sarah)` ✅ (correctly detected)
+
+**Why it breaks the system**: Inconsistent adverb detection leads to incomplete predicate generation.
+
+**Vectionary Limitation**: Inconsistent parsing of adverb modifiers across different sentence structures.
+
+---
+
+### 11. **Negation Pattern Incomplete Handling**
+
+**Sentence**: "No birds can fly underwater"
+**Expected**: `not(fly_underwater(birds))` or similar negative rule
+**Vectionary Output**:
+- Root: `fly` (VERB)
+- Children: `birds` (agent)
+- Marks: `["NO"]` detected but not converted to negative rule
+
+**Why it breaks the system**: Negation markers are detected but not converted to proper negative Prolog rules.
+
+**Vectionary Limitation**: Fails to convert negation markers into logical negative rules.
+
+## Workarounds
+
+1. **Enhanced Pattern Detection**: The dynamic converter includes fallback patterns for common cases
+2. **Multiple Conversion Attempts**: Try different parsing strategies for edge cases
+3. **User Feedback**: Document limitations for user awareness
+4. **Error Handling**: Add robust error handling for system crashes

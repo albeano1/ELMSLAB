@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enhanced Logic Modelling System</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- Cache buster: 2025-01-22-20:30 -->
     <style>
         * {
             margin: 0;
@@ -44,6 +48,53 @@
             font-size: 1.1em;
             opacity: 0.9;
         }
+
+        /* Visual reasoning styles */
+        .file-upload {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .file-upload:hover {
+            background: #e3f2fd;
+        }
+
+        .file-upload.dragover {
+            background: #e3f2fd;
+            border-color: #1976d2;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-preview {
+            margin-top: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .file-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 4px;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Visual reasoning styles are now always visible */
 
         .content {
             display: grid;
@@ -778,6 +829,29 @@
                     <button class="example-btn temporal-btn" onclick="loadExample('temporal_door')"> Door + Enter Sequence</button>
                 </div>
 
+                <div class="section visual-reasoning-section">
+                    <div class="section-title">📄 Visual Reasoning</div>
+                    <div class="file-upload" id="fileUpload" onclick="document.getElementById('fileInput').click()">
+                        <div>📁 Click to upload document or drag & drop</div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                            Supports: PDF, JPG, PNG, TIFF
+                        </div>
+                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.jpg,.jpeg,.png,.tiff,.bmp" onchange="handleFileUpload(event)">
+                    </div>
+                    <div id="filePreview" class="file-preview" style="display: none;"></div>
+                    
+                    <div class="input-group">
+                        <label for="visualQuestion">Ask a question about the document:</label>
+                        <input type="text" id="visualQuestion" placeholder="What is the main topic of this document?">
+                    </div>
+                    
+                    <button class="action-btn" onclick="performVisualReasoning()">🔍 Analyze Document</button>
+                    
+                    <div class="help-text" style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        💡 Upload any document and ask questions about its content. The system will extract text and reason about it logically.
+                    </div>
+                </div>
+
                 <div class="section knowledge-base-section">
                     <div class="section-title"> Knowledge Base Demo</div>
                     <div class="kb-buttons">
@@ -1059,15 +1133,15 @@
             try {
                 let response;
                 if (isOpenEnded) {
-                    // Use Prolog inference endpoint
-                    response = await fetch('http://localhost:8002/prolog/infer', {
+                    // Use hybrid inference endpoint with dynamic converter
+                    response = await fetch('http://localhost:8002/infer', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
                             premises: premises,
-                            query: conclusion || null
+                            conclusion: conclusion || null
                         })
                     });
                 } else {
@@ -1250,15 +1324,15 @@
             resultsContainer.innerHTML = '<div class="loading">Drawing conclusions using Prolog reasoning...</div>';
 
             try {
-                // Use the prolog/infer endpoint
-                const response = await fetch('http://localhost:8002/prolog/infer', {
+                // Use the hybrid inference endpoint with dynamic converter
+                const response = await fetch('http://localhost:8002/infer', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         premises: premises,
-                        query: conclusion || null
+                        conclusion: conclusion || null
                     })
                 });
 
@@ -1337,8 +1411,8 @@
                     </div>
                     
                     <div class="info-box" style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                        <strong>📝 Premises (${result.premises.length}):</strong><br>
-                        ${result.premises.map((p, i) => `${i+1}. ${p}`).join('<br>')}
+                        <strong>📝 Premises (${(result.premises || result.parsed_premises || []).length}):</strong><br>
+                        ${(result.premises || result.parsed_premises || []).map((p, i) => `${i+1}. ${p}`).join('<br>')}
                     </div>
                     
                     ${result.query ? `
@@ -1393,6 +1467,10 @@
                             ${typeof result.confidence === 'string' ? result.confidence : (result.confidence_level || 'Unknown')}${typeof result.confidence === 'number' ? ' (' + (result.confidence * 100).toFixed(1) + '%)' : ''}
                         </div>
                         ${result.logic_type ? `<div style="margin-left: auto; font-size: 12px; color: #7f8c8d;">${result.logic_type.toUpperCase()} Logic</div>` : ''}
+                    </div>
+                    
+                    <div class="info-box" style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>⏱️ Query Time:</strong> ${result.query_time ? (result.query_time < 0.01 ? result.query_time.toFixed(4) : result.query_time.toFixed(2)) : '0.00'}s
                     </div>
             `;
 
@@ -1497,6 +1575,45 @@
                     <div class="theorem-box">
                         <h4>🎯 Parsed Conclusion</h4>
                         <div>${result.parsed_conclusion}</div>
+                    </div>
+                `;
+            }
+
+            // Add theorem notation if available
+            if (result.theorem) {
+                html += `
+                    <div class="theorem-box" style="background: #f0f8ff; border-left: 4px solid #2196f3; padding: 15px; margin: 15px 0; border-radius: 4px;">
+                        <h4>📐 Theorem</h4>
+                        <div style="font-family: 'Courier New', monospace; background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">${result.theorem}</div>
+                    </div>
+                `;
+            }
+
+            // Add semantic analysis if available
+            if (result.semantic_analysis) {
+                html += `
+                    <div class="theorem-box" style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 15px 0; border-radius: 4px;">
+                        <h4>🔍 Semantic Analysis</h4>
+                        <div style="font-family: 'Courier New', monospace; background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">${result.semantic_analysis}</div>
+                    </div>
+                `;
+            }
+
+            // Add semantic interpretation if available
+            if (result.semantic_interpretation) {
+                html += `
+                    <div class="theorem-box" style="background: #f3e5f5; border-left: 4px solid #9c27b0; padding: 15px; margin: 15px 0; border-radius: 4px;">
+                        <h4>🔍 Semantic Interpretation</h4>
+                        <div style="font-family: 'Courier New', monospace; background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">${result.semantic_interpretation}</div>
+                    </div>
+                `;
+            }
+
+            // Add semantic role matching if available
+            if (result.semantic_role_matching) {
+                html += `
+                    <div class="info-box" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>🔍 Semantic Role Matching:</strong> ${result.semantic_role_matching}
                     </div>
                 `;
             }
@@ -2612,6 +2729,203 @@
                 `;
             }
             
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        // Visual reasoning functions
+        let selectedFile = null;
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                displayFilePreview(file);
+            }
+        }
+
+        function displayFilePreview(file) {
+            const preview = document.getElementById('filePreview');
+            const info = document.createElement('div');
+            info.className = 'file-info';
+            info.innerHTML = `
+                <strong>${file.name}</strong><br>
+                Size: ${(file.size / 1024).toFixed(1)} KB<br>
+                Type: ${file.type || 'Unknown'}
+            `;
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                preview.innerHTML = '';
+                preview.appendChild(img);
+                preview.appendChild(info);
+                preview.style.display = 'block';
+            } else {
+                preview.innerHTML = '';
+                preview.appendChild(info);
+                preview.style.display = 'block';
+            }
+        }
+
+        async function performVisualReasoning() {
+            
+            if (!selectedFile) {
+                alert('Please select a document first.');
+                return;
+            }
+
+            const question = document.getElementById('visualQuestion').value.trim();
+            if (!question) {
+                alert('Please enter a question about the document.');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '<div class="loading">🔍 Analyzing document...</div>';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('question', question);
+                formData.append('env', 'prod');
+
+                const response = await fetch('http://localhost:8002/api/visual', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayVisualResults(result);
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayVisualResults(result) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let html = `
+                <div class="result-section">
+                    <h3>🎯 Visual Reasoning Results</h3>
+                    <div class="result-item">
+                        <strong>Question:</strong> ${document.getElementById('visualQuestion').value}
+                    </div>
+            `;
+
+            if (result.success) {
+                // Format the answer properly
+                let answerText = 'No conclusions found';
+                let totalResults = 0;
+                if (result.answer && result.answer.length > 0) {
+                    if (typeof result.answer[0] === 'object' && result.answer[0].X) {
+                        // Format as "alice, carol" instead of [object Object]
+                        answerText = result.answer.map(item => item.X).join(', ');
+                        totalResults = result.answer.length;
+                    } else {
+                        answerText = result.answer.join(', ');
+                        totalResults = result.answer.length;
+                    }
+                }
+                
+                html += `
+                    <div class="result-item">
+                        <strong>Answer:</strong> ${answerText}
+                    </div>
+                    <div class="result-item">
+                        <strong>Confidence:</strong> ${result.confidence ? (result.confidence * 100).toFixed(1) : '100.0'}%
+                    </div>
+                    <div class="result-item">
+                        <strong>Processing Time:</strong> ${result.reasoning_steps ? result.reasoning_steps.toFixed(2) : '0.00'}s
+                    </div>
+                `;
+
+                // Add rich details if available
+                if (result.premises_used && result.premises_used.length > 0) {
+                    html += `
+                        <div class="result-item">
+                            <strong>📝 Extracted Text (${result.premises_used.length}):</strong>
+                            <ol>
+                                ${result.premises_used.map((premise, index) => `<li>${premise}</li>`).join('')}
+                            </ol>
+                        </div>
+                    `;
+                }
+
+                if (result.prolog_facts && result.prolog_facts.length > 0) {
+                    html += `
+                        <div class="result-item">
+                            <strong>🔬 Prolog Facts & Rules (${result.prolog_facts.length}):</strong>
+                            <ol>
+                                ${result.prolog_facts.map((fact, index) => `<li>${fact}</li>`).join('')}
+                            </ol>
+                        </div>
+                    `;
+                }
+
+                if (result.query) {
+                    html += `
+                        <div class="result-item">
+                            <strong>❓ Query:</strong> ${result.query}
+                        </div>
+                    `;
+                }
+
+                if (totalResults > 0) {
+                    html += `
+                        <div class="result-item">
+                            <strong>📊 Total:</strong> ${totalResults} result(s)
+                        </div>
+                    `;
+                }
+
+                // Add explanation section
+                html += `
+                    <div class="result-item">
+                        <strong>📝 Explanation</strong><br>
+                        Based on the visual document analysis, I used logical inference to answer the question.
+                        ${result.prolog_facts && result.prolog_facts.length > 0 ? `
+                        <br><br>From the facts and rules:<br>
+                        ${result.prolog_facts.map((fact, index) => `${index + 1}. ${fact}`).join('<br>')}
+                        ` : ''}
+                        ${result.query ? `<br><br>I queried: ${result.query}` : ''}
+                        ${totalResults > 0 ? `<br><br>This led me to find ${totalResults} result(s).` : ''}
+                    </div>
+                `;
+
+                // Add how the system reached conclusion
+                html += `
+                    <div class="result-item">
+                        <strong>🔍 How the System Reached This Conclusion:</strong><br>
+                        • Extracted text from the visual document using OCR<br>
+                        • Converted natural language text to Prolog facts and rules<br>
+                        • Applied logical inference using the query: ${result.query || 'visual analysis'}<br>
+                        • Found ${totalResults} conclusion(s) that satisfy the query
+                    </div>
+                `;
+
+                // Add confidence details
+                if (result.confidence) {
+                    const confidenceLevel = result.confidence > 0.8 ? 'High' : result.confidence > 0.6 ? 'Medium' : 'Low';
+                    html += `
+                        <div class="result-item">
+                            <strong>Confidence:</strong> ${confidenceLevel} (${(result.confidence * 100).toFixed(1)}%)
+                        </div>
+                    `;
+                }
+
+            } else {
+                html += `
+                    <div class="result-item error">
+                        <strong>Error:</strong> ${result.error}
+                    </div>
+                `;
+            }
+
             html += '</div>';
             resultsContainer.innerHTML = html;
         }

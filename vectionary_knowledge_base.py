@@ -392,7 +392,11 @@ class VectionaryKnowledgeBase:
                 data = json.load(f)
             
             # Load facts
-            for fact_id, fact_data in data.get("facts", {}).items():
+            facts_data = data.get("facts", {})
+            if isinstance(facts_data, list):
+                # Handle case where facts is stored as a list
+                facts_data = {}
+            for fact_id, fact_data in facts_data.items():
                 parsed_data = fact_data["parsed_statement"]
                 parsed_statement = ParsedStatement(
                     original_text=parsed_data["original_text"],

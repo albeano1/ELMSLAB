@@ -69,9 +69,12 @@ class ClaudeIntegration:
         
         # Import our logic system components
         try:
-            from vectionary_solution import VectionarySolution
+            from ELMS import LogicalReasoner, VectionaryParser, VectionaryAPIClient
             from vectionary_knowledge_base import VectionaryKnowledgeBase
-            self.vectionary_engine = VectionarySolution()
+            # Use current Vectionary API instead of legacy solution
+            api_client = VectionaryAPIClient(environment='prod')
+            parser = VectionaryParser(api_client)
+            self.vectionary_engine = LogicalReasoner(parser)
             self.knowledge_base = VectionaryKnowledgeBase()
         except ImportError as e:
             logger.warning(f"Could not import Vectionary components: {e}")
