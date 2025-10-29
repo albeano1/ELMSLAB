@@ -1,1 +1,12 @@
-{"facts": []}
+{
+  "facts": {},
+  "fact_counter": 0,
+  "indexes": {
+    "predicates": {},
+    "constants": {},
+    "variables": {},
+    "atoms": {},
+    "temporal": {},
+    "logic_type": {}
+  }
+}

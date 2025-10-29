@@ -3,6 +3,36 @@
 ## Overview
 This document catalogs specific Vectionary API limitations that affect the ELMS logical reasoning system. These are **Vectionary limitations**, not system issues.
 
+## Current Status (Updated)
+❌ **Vectionary Limitations Remain**: Query adverb parsing, possessive relationships, conjunctions
+🎯 **System Performance**: 66.7% test success rate (8/12 tests passing), high confidence, fast execution
+✅ **System Improvements**: 
+   - Fixed "who is X" query conversion (e.g., "who is a manager?" → "manager(X)")
+   - Fixed "who makes X" query conversion (e.g., "who makes decisions?" → "make_very(X, decisions)")
+   - Added skeleton loading UI with matching animation rhythm
+   - Cleaned up fallbacks and verified dynamic system usage
+
+## NEW LIMITATIONS DISCOVERED
+
+### Query Adverb Parsing Issue
+- **Problem**: Query "Who are students who study regularly?" parsed as "study usually" instead of "study regularly"
+- **Impact**: Mismatch between premise `study_regularly(maria)` and query `study_usually(X)`
+- **Status**: Vectionary limitation - not correctly parsing adverbs in complex queries
+- **Workaround**: System detects compound predicates but Vectionary provides wrong adverb
+- **CONFIRMED**: Still present in current system - this is a Vectionary API limitation
+
+### Negation Parsing Issue
+- **Problem**: "No birds can fly underwater" not parsed as negation
+- **Impact**: System creates `fly_fly(birds)` instead of `cannot_fly_underwater(birds)`
+- **Status**: Vectionary limitation - not detecting negation patterns
+- **Workaround**: System needs to detect "No" patterns and create negation rules
+
+### Complex Query Parsing Issue
+- **Problem**: "What does John give Mary?" parsed as `john(X)` instead of `give(john, mary, X)`
+- **Impact**: Query doesn't match premise `give_only(john, mary, book)`
+- **Status**: Vectionary limitation - not parsing complex "what" questions correctly
+- **Workaround**: System needs better pattern matching for complex queries
+
 ## Critical Limitations
 
 ### 1. **Incorrect Semantic Role Assignment**

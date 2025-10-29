@@ -1,0 +1,109 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  background: 
+    radial-gradient(circle at 30% 70%, rgba(102, 126, 234, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 70% 30%, rgba(120, 119, 198, 0.15) 0%, transparent 50%),
+    linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e0 50%, #a0aec0 75%, #718096 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 800px;
+  height: 800px;
+  transform: translate(-50%, -50%);
+  background-image: url('/ELMS.svg');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0.25;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Removed animated overlay that was causing gradient shift on scroll */
+
+/* Removed unused animation keyframes */
+
+.app-container {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+}
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 80px 20px 140px 20px;
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    padding: 60px 10px 120px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-container {
+    padding: 40px 5px 100px 5px;
+  }
+}
+
+/* Glass effect integration improvements */
+.glass-wrapper {
+  /* Ensure proper scaling and positioning */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Smooth transitions for all glass elements */
+.glass-wrapper,
+.glass-wrapper * {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

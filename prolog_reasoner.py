@@ -70,11 +70,21 @@ class PrologReasoner:
             
             # Convert results to a more readable format
             formatted_results = []
-            if results:
-                # Check if results is 'No' (no solutions found)
-                if results == ['No']:
-                    return True, []
-                
+            
+            # Handle None results
+            if results is None:
+                return True, []
+            
+            # Handle empty results or 'No' results
+            if not results or results == ['No']:
+                return True, []
+            
+            # Ensure results is iterable
+            if not hasattr(results, '__iter__') or not hasattr(results, '__next__') and not hasattr(results, '__getitem__'):
+                return True, []
+            
+            # Process results
+            try:
                 for result in results:
                     if isinstance(result, dict):
                         formatted_results.append(result)
@@ -83,6 +93,10 @@ class PrologReasoner:
                         formatted_results.append({f"Var{i}": val for i, val in enumerate(result)})
                     else:
                         formatted_results.append({"result": result})
+            except (TypeError, AttributeError) as e:
+                # Results might not be iterable
+                print(f"Warning: Could not iterate results: {e}")
+                return True, []
             
             return True, formatted_results
         except Exception as e:

@@ -1407,7 +1407,7 @@
                     </div>
                     
                     <div class="info-box" style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                        <strong>⏱️ Reasoning Time:</strong> ${result.reasoning_time ? (result.reasoning_time < 0.01 ? result.reasoning_time.toFixed(4) : result.reasoning_time.toFixed(2)) : '0.00'}s
+                        <strong>⏱️ Reasoning Time:</strong> ${result.reasoning_time ? (result.reasoning_time < 0.01 ? result.reasoning_time.toFixed(4) : result.reasoning_time.toFixed(2)) : (result.query_time ? (result.query_time < 0.01 ? result.query_time.toFixed(4) : result.query_time.toFixed(2)) : '0.00')}s
                     </div>
                     
                     <div class="info-box" style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
@@ -1422,14 +1422,14 @@
                     ` : ''}
                     
                     <div class="info-box" style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                        <strong>🔬 Prolog Facts & Rules (${result.prolog_facts.length}):</strong><br>
-                        ${result.prolog_facts.map((f, i) => `${i+1}. ${f}`).join('<br>')}
+                        <strong>🔬 Prolog Facts & Rules (${(result.prolog_facts || result.parsed_premises || []).length}):</strong><br>
+                        ${(result.prolog_facts || result.parsed_premises || []).map((f, i) => `${i+1}. ${f}`).join('<br>')}
                     </div>
                     
                     <div class="info-box" style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                        <strong>💡 Answer:</strong> ${result.conclusions.length > 0 ? formatAnswer(result.conclusions) : 'No conclusions found'}
+                        <strong>💡 Answer:</strong> ${result.answer || (result.conclusions && result.conclusions.length > 0) ? formatAnswer(result.conclusions) : (result.valid ? 'Yes' : 'No conclusions found')}
                         <br><br>
-                        <strong>📊 Total:</strong> ${result.conclusions_count} result(s)
+                        <strong>📊 Total:</strong> ${result.conclusions_count || (result.conclusions ? result.conclusions.length : 0)} result(s)
                     </div>
                 </div>
                 
@@ -1437,8 +1437,8 @@
                     <strong>📝 Explanation</strong><br>
                     Based on the premises provided, I used logical inference to answer the question.<br><br>
                     From the facts and rules:<br>
-                    ${result.prolog_facts.map((f, i) => `${i+1}. ${f}`).join('<br>')}<br><br>
-                    I queried: ${result.prolog_query || result.query}<br><br>
+                    ${(result.prolog_facts || result.parsed_premises || []).map((f, i) => `${i+1}. ${f}`).join('<br>')}<br><br>
+                    I queried: ${result.prolog_query || result.query || result.parsed_conclusion}<br><br>
                     This led me to find ${result.conclusions_count} result(s).
                 </div>
                 
@@ -1484,7 +1484,7 @@
                             <div style="background: white; padding: 8px; border-radius: 3px; margin-top: 8px;">
                                 <strong style="color: #2e7d32;">Facts used:</strong>
                                 <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-                                    ${result.kb_facts.map((fact, i) => `<li style="color: #1b5e20;">${fact.text || fact}</li>`).join('')}
+                                    ${(result.kb_facts || []).map((fact, i) => `<li style="color: #1b5e20;">${fact.text || fact}</li>`).join('')}
                                 </ul>
                             </div>
                         ` : ''}
@@ -1541,7 +1541,7 @@
                 html += `
                     <div class="premise-list">
                         <h4>🔍 How the System Reached This Conclusion</h4>
-                        ${result.reasoning_steps.map((step, index) => `
+                        ${(result.reasoning_steps || []).map((step, index) => `
                             <div class="premise-item">${step}</div>
                         `).join('')}
                     </div>
@@ -1552,7 +1552,7 @@
                 html += `
                     <div class="premise-list">
                         <h4>📐 Formal Logical Proof</h4>
-                        ${result.formal_steps.map((step, index) => `
+                        ${(result.formal_steps || []).map((step, index) => `
                             <div class="premise-item" style="font-family: 'Courier New', monospace; background: #f8f9fa; padding: 8px; margin: 5px 0; border-left: 3px solid #3498db;">${step}</div>
                         `).join('')}
                     </div>
@@ -1563,7 +1563,7 @@
                 html += `
                     <div class="premise-list">
                         <h4>📋 Parsed Premises</h4>
-                        ${result.parsed_premises.map((premise, index) => `
+                        ${(result.parsed_premises || []).map((premise, index) => `
                             <div class="premise-item">${index + 1}. ${premise}</div>
                         `).join('')}
                     </div>

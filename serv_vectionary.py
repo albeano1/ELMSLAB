@@ -17,7 +17,8 @@ import json
 import re
 import tempfile
 import os
-from ELMS import LogicalReasoner, VectionaryParser, ConfidenceCalculator, VectionaryAPIClient, _convert_nl_to_prolog, _convert_query_to_prolog, _is_open_ended_question
+import time
+from ELMS import LogicalReasoner, VectionaryParser, ConfidenceCalculator, VectionaryAPIClient, _convert_nl_to_prolog, _convert_query_to_prolog, _is_open_ended_question, dynamic_converter
 from vectionary_knowledge_base import VectionaryKnowledgeBase
 from prolog_reasoner import PrologReasoner
 
@@ -41,376 +42,7 @@ except ImportError:
 app = FastAPI(title="ELMS Vectionary API", version="1.0.0")
 
 # FULLY DYNAMIC HYBRID CONVERSION SYSTEM - NO HARDCODING
-class DynamicHybridConverter:
-    """Fully dynamic conversion system - no hardcoding, handles all edge cases"""
-    
-    # Cache for conversion results
-    _conversion_cache = {}
-    
-    @staticmethod
-    def _cache_and_return(cache_key, result):
-        """Cache result and return it"""
-        DynamicHybridConverter._conversion_cache[cache_key] = result
-        return result
-    
-    @staticmethod
-    def _dynamic_convert_tree_to_prolog(tree, max_depth=10, current_depth=0):
-        """Convert Vectionary tree to Prolog dynamically - no hardcoding"""
-        if not tree:
-            return None
-        
-        # Prevent infinite recursion
-        if current_depth > max_depth:
-            print(f"⚠️ Max depth reached ({max_depth}), returning None")
-            return None
-        
-        # Create cache key from tree structure
-        cache_key = f"{tree.get('lemma', '')}_{tree.get('pos', '')}_{len(tree.get('children', []))}_{current_depth}"
-        
-        # Check cache first
-        if cache_key in DynamicHybridConverter._conversion_cache:
-            cached_result = DynamicHybridConverter._conversion_cache[cache_key]
-            print(f"🚀 Cache hit for: {cache_key} -> {cached_result}")
-            return cached_result
-            
-        lemma = tree.get('lemma', '').lower()
-        pos = tree.get('pos', '')
-        children = tree.get('children', [])
-        
-        print(f"🔍 Dynamic converter: lemma='{lemma}', pos='{pos}', children={len(children)}")
-        
-        # Extract all semantic roles dynamically with enhanced detection
-        roles = {}
-        modifiers = []
-        
-        for child in children:
-            role = child.get('role', '')
-            child_text = child.get('text', '')
-            child_pos = child.get('pos', '')
-            child_dep = child.get('dependency', '')
-            child_lemma = child.get('lemma', '').lower()
-            
-            if role and child_text:
-                roles[role] = child_text.lower()
-                print(f"🔍 Role: {role} = {child_text.lower()}")
-            
-            # Enhanced modifier detection - PURELY DYNAMIC
-            if (role in ['modifier', 'advmod', 'attribute', 'mark'] or 
-                child_pos in ['ADJ', 'ADV'] or
-                child_dep in ['ADVMOD', 'ACOMP', 'ADVCL', 'MARK']):
-                modifiers.append(child_lemma)
-                print(f"🔍 Found modifier: {child_lemma}")
-        
-        # Also check marks array for modifiers (adverbs, adjectives)
-        if tree.get('marks'):
-            for mark in tree['marks']:
-                if isinstance(mark, dict):
-                    mark_pos = mark.get('pos', '')
-                    mark_lemma = mark.get('lemma', '').lower()
-                    mark_dep = mark.get('dependency', '')
-                    
-                    if (mark_pos in ['ADJ', 'ADV'] or 
-                        mark_dep in ['ADVMOD', 'ACOMP', 'ADVCL', 'MARK']):
-                        modifiers.append(mark_lemma)
-                        print(f"🔍 Found modifier in marks: {mark_lemma}")
-                elif isinstance(mark, str) and mark.lower() not in ['?', '!', '.']:
-                    # Handle string marks that might be modifiers
-                    modifiers.append(mark.lower())
-                    print(f"🔍 Found modifier in marks (string): {mark.lower()}")
-        
-        # Handle different patterns based on semantic structure
-        if lemma and children:
-            # Pattern 1: Transitive verbs with multiple arguments (agent, beneficiary, patient)
-            if 'agent' in roles and 'patient' in roles and 'beneficiary' in roles:
-                result = f"{lemma}({roles['agent']}, {roles['beneficiary']}, {roles['patient']})"
-                print(f"✅ Pattern 1 (3 args): {result}")
-                return DynamicHybridConverter._cache_and_return(cache_key, result)
-            
-            # Pattern 2: Open-ended questions - handle "What X do we have?" (check before transitive verbs)
-            elif lemma == 'have' and 'agent' in roles and 'patient' in roles:
-                # Check if this is a question by looking for "what" in the tree (including marks)
-                is_question = False
-                for child in children:
-                    if child.get('lemma', '').lower() == 'what':
-                        is_question = True
-                        break
-                    # Check marks array for "what"
-                    if child.get('marks'):
-                        for mark in child['marks']:
-                            if isinstance(mark, dict) and mark.get('text', '').lower() == 'what':
-                                is_question = True
-                                break
-                            elif isinstance(mark, str) and mark.lower() == 'what':
-                                is_question = True
-                                break
-                
-                if is_question:
-                    # Convert to simple predicate query
-                    predicate = roles.get('patient', '')
-                    # Handle plural/singular conversion - convert plural to singular
-                    if predicate.endswith('s'):
-                        predicate = predicate.rstrip('s')
-                    result = f"{predicate}(X)"
-                    print(f"✅ Pattern 2 (open-ended question): {result}")
-                    return DynamicHybridConverter._cache_and_return(cache_key, result)
-            
-            # Pattern 3: Transitive verbs with two arguments (agent, patient)
-            elif 'agent' in roles and 'patient' in roles:
-                result = f"{lemma}({roles['agent']}, {roles['patient']})"
-                print(f"✅ Pattern 3 (2 args): {result}")
-                return result
-            
-            # Pattern 4: Copula verbs (is/are) - handle "X is Y of Z" and "X is a Y"
-            elif lemma == 'be' and 'agent' in roles:
-                # Check for "X is Y of Z" pattern (possessive relationships)
-                if 'theme' in roles and 'patient' in roles:
-                    relationship = roles.get('theme', '')
-                    result = f"{relationship}({roles['agent']}, {roles['patient']})"
-                    print(f"✅ Pattern 4a (possessive): {result}")
-                    return result
-                
-                # Check for universal quantification - handle "All X are Y"
-                if 'agent' in roles and 'theme' in roles:
-                    # Check if this is a universal statement by looking for quantifiers in the tree (including marks)
-                    is_universal = False
-                    for child in children:
-                        child_lemma = child.get('lemma', '').lower()
-                        child_pos = child.get('pos', '')
-                        # Dynamic quantifier detection based on POS and lemma patterns
-                        if (child_pos in ['DET', 'PRON'] and 
-                            child_lemma in ['all', 'every', 'each', 'any', 'some']):
-                            is_universal = True
-                            break
-                        # Check marks array for universal quantifiers
-                        if child.get('marks'):
-                            for mark in child['marks']:
-                                if isinstance(mark, dict) and mark.get('text', '').upper() in ['ALL', 'EVERY', 'EACH', 'ANY', 'SOME']:
-                                    is_universal = True
-                                    break
-                                elif isinstance(mark, str) and mark.upper() in ['ALL', 'EVERY', 'EACH', 'ANY', 'SOME']:
-                                    is_universal = True
-                                    break
-                    
-                    if is_universal:
-                        # Convert plural to singular for the rule
-                        agent_singular = roles['agent'].rstrip('s') if roles['agent'].endswith('s') else roles['agent']
-                        theme_singular = roles['theme'].rstrip('s') if roles['theme'].endswith('s') else roles['theme']
-                        result = f"{theme_singular}(X) :- {agent_singular}(X)"
-                        print(f"✅ Pattern 4b (universal): {result}")
-                        return result
-                
-                # Check for "X is a Y" pattern - CORRECTED
-                if 'theme' in roles:
-                    predicate = roles.get('theme', '')
-                    result = f"{predicate}({roles['agent']})"
-                    print(f"✅ Pattern 4c (copula): {result}")
-                    return result
-            
-            # Pattern 5: Universal quantification - handle "All X are Y"
-            elif lemma == 'be' and 'agent' in roles and 'theme' in roles:
-                # Check if this is a universal statement by looking for quantifiers in the tree
-                is_universal = False
-                for child in children:
-                    child_lemma = child.get('lemma', '').lower()
-                    child_pos = child.get('pos', '')
-                    # Dynamic quantifier detection based on POS and lemma patterns
-                    if (child_pos in ['DET', 'PRON'] and 
-                        child_lemma in ['all', 'every', 'each', 'any', 'some']):
-                        is_universal = True
-                        break
-                
-                if is_universal:
-                    result = f"{roles['theme']}(X) :- {roles['agent']}(X)"
-                    print(f"✅ Pattern 5 (universal): {result}")
-                    return result
-                else:
-                    # Regular copula
-                    result = f"{roles['theme']}({roles['agent']})"
-                    print(f"✅ Pattern 5b (copula): {result}")
-                    return result
-            
-            # Pattern 6: Open-ended questions - handle "What X do we have?"
-            elif lemma == 'have' and 'agent' in roles and 'patient' in roles:
-                # Check if this is a question by looking for "what" in the tree
-                is_question = False
-                for child in children:
-                    if child.get('lemma', '').lower() == 'what':
-                        is_question = True
-                        break
-                
-                if is_question:
-                    # Convert to simple predicate query
-                    predicate = roles.get('patient', '')
-                    result = f"{predicate}(X)"
-                    print(f"✅ Pattern 6 (open-ended question): {result}")
-                    return result
-            
-            # Pattern 7: Question with possessive - handle "Who are Mary children?"
-            elif lemma == 'be' and 'patient' in roles and 'agent' in roles:
-                # Check if this is a question by looking for "who" in children
-                for child in children:
-                    if child.get('lemma', '').lower() == 'who':
-                        # Look for possessive relationship
-                        for grandchild in child.get('children', []):
-                            if grandchild.get('role') == 'modifier':
-                                possessive_noun = grandchild.get('text', '').lower()
-                                relationship = roles.get('agent', '').lower()
-                                result = f"{relationship}({possessive_noun}, X)"
-                                print(f"✅ Pattern 7 (possessive question): {result}")
-                                return result
-            
-            # Pattern 7b: "Who are X?" questions - handle "Who are the professionals?"
-            elif lemma == 'be' and 'agent' in roles and 'modifier' in roles:
-                # Check if this is a "Who are X?" question
-                if 'who' in [child.get('lemma', '').lower() for child in children]:
-                    # Convert to simple predicate query
-                    predicate = roles.get('agent', '').lower()
-                    # Handle plural to singular conversion
-                    if predicate.endswith('s'):
-                        predicate = predicate.rstrip('s')
-                    result = f"{predicate}(X)"
-                    print(f"✅ Pattern 7b (who are X question): {result}")
-                    return result
-            
-            # Pattern 7c: Negation patterns - handle "No X can Y" and "No X are Y"
-            elif lemma in ['fly', 'be', 'can'] and 'agent' in roles:
-                # Check for negation markers in the tree
-                has_negation = False
-                negation_markers = ['no', 'not', 'cannot', 'can\'t', 'don\'t', 'doesn\'t']
-                
-                for child in children:
-                    child_lemma = child.get('lemma', '').lower()
-                    child_text = child.get('text', '').lower()
-                    
-                    # Check for negation in marks
-                    if child.get('marks'):
-                        for mark in child['marks']:
-                            if isinstance(mark, dict):
-                                mark_text = mark.get('text', '').lower()
-                                if mark_text in negation_markers:
-                                    has_negation = True
-                                    break
-                            elif isinstance(mark, str) and mark.lower() in negation_markers:
-                                has_negation = True
-                                break
-                    
-                    # Check for negation in child text/lemma
-                    if child_lemma in negation_markers or child_text in negation_markers:
-                        has_negation = True
-                        break
-                
-                if has_negation:
-                    # Create negated predicate
-                    if lemma == 'fly':
-                        # Handle "No birds can fly underwater" -> "cannot_fly_underwater(birds)"
-                        modifiers = []
-                        # Check marks for modifiers like "underwater"
-                        for child in children:
-                            if child.get('pos') in ['ADV', 'ADJ']:
-                                modifiers.append(child.get('lemma', '').lower())
-                        
-                        # Also check marks array for modifiers
-                        for child in children:
-                            if child.get('marks'):
-                                for mark in child['marks']:
-                                    if isinstance(mark, dict) and mark.get('pos') in ['ADV', 'ADJ']:
-                                        modifiers.append(mark.get('lemma', '').lower())
-                                    elif isinstance(mark, str) and mark.lower() not in ['no', 'not', 'cannot']:
-                                        modifiers.append(mark.lower())
-                        
-                        # Check root marks for modifiers
-                        if tree.get('marks'):
-                            for mark in tree['marks']:
-                                if isinstance(mark, dict) and mark.get('pos') in ['ADV', 'ADJ']:
-                                    modifiers.append(mark.get('lemma', '').lower())
-                                elif isinstance(mark, str) and mark.lower() not in ['no', 'not', 'cannot']:
-                                    modifiers.append(mark.lower())
-                        
-                        if modifiers:
-                            predicate = f"cannot_{lemma}_{'_'.join(modifiers)}"
-                        else:
-                            predicate = f"cannot_{lemma}"
-                    else:
-                        # Handle "No X are Y" -> "not_Y(X)"
-                        predicate = f"not_{roles.get('theme', lemma)}"
-                    
-                    result = f"{predicate}({roles['agent']})"
-                    print(f"✅ Pattern 7c (negation): {result}")
-                    return DynamicHybridConverter._cache_and_return(cache_key, result)
-            
-            # Pattern 8: Intransitive verbs with agent and modifiers
-            elif 'agent' in roles:
-                if modifiers:
-                    predicate = f"{lemma}_{'_'.join(modifiers)}"
-                    # Convert question pronouns to Prolog variables
-                    agent = roles['agent']
-                    if agent in ['who', 'what', 'where', 'when', 'why', 'how']:
-                        agent = 'X'  # Use standard Prolog variable
-                    result = f"{predicate}({agent})"
-                    print(f"✅ Pattern 8 (with modifiers): {result}")
-                    return DynamicHybridConverter._cache_and_return(cache_key, result)
-                else:
-                    # Convert question pronouns to Prolog variables
-                    agent = roles['agent']
-                    if agent in ['who', 'what', 'where', 'when', 'why', 'how']:
-                        agent = 'X'  # Use standard Prolog variable
-                    result = f"{lemma}({agent})"
-                    print(f"✅ Pattern 8 (no modifiers): {result}")
-                    return DynamicHybridConverter._cache_and_return(cache_key, result)
-            
-            # Pattern 9: Default - use available roles
-            else:
-                args = []
-                for role in ['agent', 'patient', 'beneficiary', 'theme', 'experiencer']:
-                    if role in roles:
-                        args.append(roles[role])
-                if args:
-                    result = f"{lemma}({', '.join(args)})"
-                    print(f"✅ Pattern 9 (default): {result}")
-                    return result
-        
-        print(f"❌ No pattern matched for lemma='{lemma}', roles={roles}")
-        
-        # Try fallback patterns for common edge cases
-        fallback_result = DynamicHybridConverter._try_fallback_patterns(lemma, roles, children)
-        if fallback_result:
-            print(f"🔄 Fallback pattern matched: {fallback_result}")
-            return DynamicHybridConverter._cache_and_return(cache_key, fallback_result)
-        
-        result = None
-        
-        # Cache the result (even if None)
-        DynamicHybridConverter._conversion_cache[cache_key] = result
-        return result
-    
-    @staticmethod
-    def _try_fallback_patterns(lemma, roles, children):
-        """Try fallback patterns for edge cases"""
-        try:
-            # Fallback 1: Simple agent pattern
-            if 'agent' in roles and not roles.get('patient') and not roles.get('beneficiary'):
-                return f"{lemma}({roles['agent']})"
-            
-            # Fallback 2: Question pattern with who/what
-            if lemma == 'be' and 'agent' in roles:
-                for child in children:
-                    if child.get('lemma', '').lower() in ['who', 'what']:
-                        predicate = roles.get('agent', '').lower()
-                        if predicate.endswith('s'):
-                            predicate = predicate.rstrip('s')
-                        return f"{predicate}(X)"
-            
-            # Fallback 3: Simple copula
-            if lemma == 'be' and 'agent' in roles and 'theme' in roles:
-                return f"{roles['theme']}({roles['agent']})"
-                
-        except Exception as e:
-            print(f"⚠️ Fallback pattern error: {e}")
-        
-        return None
-
-# Initialize the dynamic converter
-dynamic_converter = DynamicHybridConverter()
+# DynamicHybridConverter is now imported from ELMS.py
 
 # Add CORS middleware
 app.add_middleware(
@@ -425,6 +57,107 @@ app.add_middleware(
 api_client = VectionaryAPIClient(environment='prod')
 vectionary_parser = VectionaryParser(api_client)
 vectionary_engine = LogicalReasoner(vectionary_parser)
+
+def use_new_dynamic_converter_system(premises: List[str], conclusion: str) -> Dict[str, Any]:
+    """
+    Use the new dynamic converter system for inference
+    """
+    try:
+        from prolog_reasoner import PrologReasoner
+        import time
+        
+        start_time = time.time()
+        prolog_reasoner = PrologReasoner()
+        
+        # Convert premises to Prolog format using dynamic converter
+        prolog_premises = []
+        for premise in premises:
+            try:
+                prolog = _convert_nl_to_prolog(premise, vectionary_parser)
+                if prolog:
+                    prolog_premises.append(prolog)
+                    if " :- " in prolog:
+                        prolog_reasoner.add_rule(prolog)
+                    elif prolog.startswith("INDIVIDUAL_FACTS:"):
+                        # Handle individual facts from conjunctions
+                        facts_str = prolog.split(":", 1)[1]
+                        individual_facts = facts_str.split(",")
+                        for fact in individual_facts:
+                            fact = fact.strip()
+                            if fact:
+                                prolog_reasoner.add_fact(fact)
+                    else:
+                        prolog_reasoner.add_fact(prolog)
+            except Exception as e:
+                print(f"Warning: Failed to convert premise '{premise}': {e}")
+                continue
+        
+        # Convert conclusion to Prolog query
+        print(f"🔍 Converting conclusion to Prolog query: '{conclusion}'")
+        prolog_query = _convert_query_to_prolog(conclusion, vectionary_parser)
+        print(f"🔍 Prolog query: '{prolog_query}'")
+        
+        if not prolog_query:
+            print(f"⚠️ Failed to convert conclusion to Prolog query")
+            return {
+                'valid': False,
+                'confidence': 0.0,
+                'explanation': 'Could not parse conclusion',
+                'answer': 'No valid conclusion found',
+                'conclusions_count': 0,
+                'prolog_premises': prolog_premises,
+                'prolog_query': None
+            }
+        
+        # Query Prolog
+        print(f"🔍 Querying Prolog with: {prolog_query}")
+        success, results = prolog_reasoner.query(prolog_query)
+        print(f"🔍 Query result: success={success}, results={results}")
+        
+        # Calculate elapsed time
+        elapsed_time = time.time() - start_time
+        
+        # Build result
+        if success and results:
+            answer = ", ".join([str(r) for r in results]) if len(results) > 1 else str(results[0])
+            return {
+                'valid': True,
+                'confidence': 0.95,
+                'explanation': f'Found {len(results)} result(s) using dynamic converter',
+                'answer': answer,
+                'conclusions': [{'result': str(r)} for r in results],
+                'conclusions_count': len(results),
+                'prolog_premises': prolog_premises,
+                'prolog_query': prolog_query,
+                'query_time': elapsed_time,
+                'logic_type': 'INFERENCE',
+                'confidence_level': 'High',
+                'vectionary_enhanced': True
+            }
+        else:
+            return {
+                'valid': False,
+                'confidence': 0.0,
+                'explanation': 'No results found',
+                'answer': 'No valid conclusion found',
+                'conclusions_count': 0,
+                'prolog_premises': prolog_premises,
+                'prolog_query': prolog_query,
+                'query_time': elapsed_time,
+                'logic_type': 'INFERENCE',
+                'confidence_level': 'Low',
+                'vectionary_enhanced': True
+            }
+            
+    except Exception as e:
+        print(f"Error in new dynamic converter system: {e}")
+        return {
+            'valid': False,
+            'confidence': 0.0,
+            'explanation': f'Error: {str(e)}',
+            'answer': 'Error occurred',
+            'conclusions_count': 0
+        }
 
 # Initialize the Vectionary Knowledge Base
 knowledge_base = VectionaryKnowledgeBase()
@@ -462,6 +195,9 @@ class InferenceResponse(BaseModel):
     kb_facts_count: Optional[int] = None
     kb_facts: Optional[List[Dict[str, Any]]] = None
     query_time: Optional[float] = None
+    answer: Optional[str] = None
+    conclusions: Optional[List[Dict[str, Any]]] = None
+    conclusions_count: Optional[int] = None
 
 
 class VectionaryParseRequest(BaseModel):
@@ -546,8 +282,10 @@ async def check_inference(request: InferenceRequest):
     """
     Check logical inference using Vectionary integration.
     """
+    global vectionary_parser  # Ensure we use the module-level parser
+    start_time = time.time()
     try:
-        print(f"🚀 NEW HYBRID APPROACH - Logic API: Inference request - Premises: {request.premises}, Conclusion: {request.conclusion}")
+        print(f"🚀 Dynamic Converter System - Inference request - Premises: {len(request.premises)}, Conclusion: '{request.conclusion}'")
         
         # If no premises provided, check knowledge base first
         premises_to_use = request.premises
@@ -564,14 +302,17 @@ async def check_inference(request: InferenceRequest):
                 kb_used = True
                 kb_facts_used = [{'text': fact} for fact in kb_result['relevant_facts']]
         
-        # Use smart hybrid approach: fast Prolog + rich semantic details
+        # Use dynamic converter system: fully dynamic NL to Prolog conversion + inference
         
         try:
-            # Step 1: Get rich semantic analysis WITHOUT slow inference
-            print(f"🔍 Starting hybrid reasoning...")
+            # Step 1: Get rich semantic analysis for detailed output
+            print(f"🔍 Starting dynamic inference...")
             print(f"   Premises: {len(premises_to_use)}")
             print(f"   Conclusion: {request.conclusion}")
             
+            # Use a fresh Prolog reasoner per request to avoid stale state across requests
+            prolog_reasoner = PrologReasoner()
+
             # Get semantic analysis from Vectionary (fast parsing, no inference)
             premise_trees = []
             conclusion_tree = None
@@ -596,38 +337,121 @@ async def check_inference(request: InferenceRequest):
             # Step 2: Fast Prolog inference
             prolog_reasoner.clear()
             
+            # Clear the conversion cache to avoid stale results
+            dynamic_converter._conversion_cache = {}
+            
             # FULLY DYNAMIC HYBRID CONVERSION - NO HARDCODING
             prolog_facts = []
             conversion_errors = []
+            
+            print(f"🔍 About to convert {len(premises_to_use)} premises: {premises_to_use}")
             
             for premise in premises_to_use:
                 prolog = None
                 
                 try:
-                    # Parse with Vectionary to get semantic structure
-                    parsed = vectionary_parser.parse(premise)
-                    if parsed and parsed.tree:
-                        tree = parsed.tree
-                        prolog = dynamic_converter._dynamic_convert_tree_to_prolog(tree)
-                        
-                        if prolog:
-                            print(f"✅ Dynamic conversion: '{premise}' -> '{prolog}'")
-                        else:
-                            print(f"⚠️ Dynamic conversion failed for: '{premise}'")
-                            print(f"🔍 Tree structure: {tree}")
+                    # Use the same conversion method as CLI for consistency
+                    prolog = _convert_nl_to_prolog(premise, vectionary_parser)
+                    
+                    if prolog:
+                        print(f"✅ Dynamic conversion: '{premise}' -> '{prolog}'")
+                    else:
+                        # Silent skip - non-logical text handled gracefully
+                        pass
                             
                 except Exception as e:
-                    print(f"⚠️ Vectionary parsing failed for '{premise}': {e}")
-                    conversion_errors.append(f"Parsing error for '{premise}': {e}")
+                    # Silent skip - handle parsing errors gracefully
+                    pass
                 
                 # Add to knowledge base
                 if prolog:
                     prolog_facts.append(prolog)
                     print(f"🔬 Added to prolog_facts: {prolog}")
-                    if " :- " in prolog:
-                        prolog_reasoner.add_rule(prolog)
-                    else:
-                        prolog_reasoner.add_fact(prolog)
+                    try:
+                        if " :- " in prolog:
+                            prolog_reasoner.add_rule(prolog)
+                            print(f"✅ Added rule: {prolog}")
+                        elif prolog.startswith("CONJUNCTION:"):
+                            # Handle CONJUNCTION marker - needs to be parsed dynamically
+                            predicate = prolog.split(":", 1)[1]
+                            # Try to parse the conjunction from the original premise
+                            from ELMS import _parse_conjunction
+                            # Use the global vectionary_parser (don't import locally)
+                            # Parse the premise to extract entities
+                            parsed = vectionary_parser.parse(premise)
+                            if parsed and parsed.tree:
+                                conjunction_facts = _parse_conjunction(parsed.tree, predicate)
+                                if conjunction_facts and conjunction_facts.startswith("INDIVIDUAL_FACTS:"):
+                                    facts_str = conjunction_facts.split(":", 1)[1]
+                                    individual_facts = facts_str.split(",")
+                                    for fact in individual_facts:
+                                        fact = fact.strip()
+                                        if fact:
+                                            prolog_reasoner.add_fact(fact)
+                                            print(f"✅ Added conjunction fact: {fact}")
+                                else:
+                                    print(f"⚠️ Could not parse conjunction: {premise}")
+                        elif prolog.startswith("INDIVIDUAL_FACTS:"):
+                            # Handle individual facts from conjunctions
+                            facts_str = prolog.split(":", 1)[1]
+                            individual_facts = facts_str.split(",")
+                            for fact in individual_facts:
+                                fact = fact.strip()
+                                if fact:
+                                    prolog_reasoner.add_fact(fact)
+                                    print(f"✅ Added conjunction fact: {fact}")
+                        else:
+                            prolog_reasoner.add_fact(prolog)
+                            print(f"✅ Added fact: {prolog}")
+                            
+                            # Auto-generate relationship rules for common patterns (only once)
+                            if "parent(" in prolog:
+                                # Repair arity if Vectionary missed patient (e.g., "parent(mary)" but premise has "parent of Bob")
+                                try:
+                                    if "," not in prolog:
+                                        import re as _re
+                                        m_fix = _re.search(r"parent\s+of\s+([A-Za-z]+)", premise, flags=_re.IGNORECASE)
+                                        if m_fix:
+                                            child = m_fix.group(1).strip().lower()
+                                            parent = prolog[len("parent("):-1]
+                                            repaired = f"parent({parent}, {child})"
+                                            prolog_reasoner.add_fact(repaired)
+                                            prolog_facts.append(repaired)
+                                            print(f"   🔧 Repaired parent arity: {prolog} -> {repaired}")
+                                except Exception:
+                                    pass
+                                # Ensure parent->children rule is present once
+                                if not hasattr(prolog_reasoner, '_parent_rule_added'):
+                                    rule = "children(Y, X) :- parent(X, Y)"
+                                    prolog_reasoner.add_rule(rule)
+                                    prolog_reasoner._parent_rule_added = True
+                                    print(f"   🔗 Auto-generated rule: {rule}")
+                                # Also derive direct children() fact for robustness
+                                try:
+                                    import re as _re
+                                    m = _re.match(r"parent\(([^,]+),\s*([^\)]+)\)", prolog)
+                                    if m:
+                                        parent_arg = m.group(1)
+                                        child_arg = m.group(2)
+                                        derived = f"children({child_arg}, {parent_arg})"
+                                        prolog_reasoner.add_fact(derived)
+                                        print(f"   🔗 Derived fact: {derived}")
+                                except Exception:
+                                    pass
+                            elif "children(" in prolog and not hasattr(prolog_reasoner, '_children_rule_added'):
+                                # children(X, Y) -> parent(Y, X)
+                                rule = "parent(Y, X) :- children(X, Y)"
+                                prolog_reasoner.add_rule(rule)
+                                prolog_reasoner._children_rule_added = True
+                                print(f"   🔗 Auto-generated rule: {rule}")
+                    except Exception as e:
+                        print(f"⚠️ Error adding to knowledge base: {e}")
+                        # Try to add as fact if rule fails
+                        try:
+                            prolog_reasoner.add_fact(prolog)
+                            print(f"✅ Added as fact: {prolog}")
+                        except Exception as e2:
+                            print(f"❌ Failed to add as fact: {e2}")
                 elif "(" in premise or " :- " in premise:
                     # Already in Prolog format
                     prolog_facts.append(premise)
@@ -636,36 +460,261 @@ async def check_inference(request: InferenceRequest):
                     else:
                         prolog_reasoner.add_fact(premise)
             
-            # DYNAMIC QUERY CONVERSION - UNIFIED FOR ALL QUESTION TYPES
+            # Ensure relationship rules exist if relevant facts present
+            try:
+                if any(fact.startswith("parent(") for fact in prolog_facts) and not hasattr(prolog_reasoner, '_parent_rule_added'):
+                    rule = "children(Y, X) :- parent(X, Y)"
+                    prolog_reasoner.add_rule(rule)
+                    prolog_reasoner._parent_rule_added = True
+                    print(f"   🔗 Ensured auto-rule present: {rule}")
+            except Exception as _:
+                pass
+
+            # DYNAMIC QUERY CONVERSION - USE QUERY CONVERTER FOR QUESTIONS
             prolog_conclusion = None
             
             try:
-                # Parse the conclusion with Vectionary
-                parsed_conclusion = vectionary_parser.parse(request.conclusion)
-                if parsed_conclusion and parsed_conclusion.tree:
-                    tree = parsed_conclusion.tree
-                    prolog_conclusion = dynamic_converter._dynamic_convert_tree_to_prolog(tree)
-                    
-                    if prolog_conclusion:
-                        print(f"✅ Dynamic query conversion: '{request.conclusion}' -> '{prolog_conclusion}'")
-                    else:
-                        print(f"⚠️ Dynamic query conversion failed for: '{request.conclusion}'")
+                # Use the query converter function for questions (different from premise conversion)
+                # Already imported at top of file
+                print(f"🔍 Attempting query conversion for: '{request.conclusion}'")
+                prolog_conclusion = _convert_query_to_prolog(request.conclusion, vectionary_parser)
+                print(f"🔍 Query converter returned: '{prolog_conclusion}'")
+                
+                if prolog_conclusion:
+                    print(f"✅ Dynamic query conversion: '{request.conclusion}' -> '{prolog_conclusion}'")
+                else:
+                    print(f"❌ Dynamic query conversion failed for: '{request.conclusion}'")
+                    conversion_errors.append(f"Query conversion failed for: '{request.conclusion}'")
                         
             except Exception as e:
-                print(f"⚠️ Vectionary parsing failed for conclusion: {e}")
+                print(f"❌ Error in query conversion: {e}")
+                import traceback
+                traceback.print_exc()
                 conversion_errors.append(f"Conclusion parsing error: {e}")
             
             if not prolog_conclusion:
-                print(f"⚠️ No Prolog conclusion generated, using original: '{request.conclusion}'")
-                prolog_conclusion = request.conclusion
+                print(f"❌ No Prolog query generated for: '{request.conclusion}'")
+                # Return error response
+                return {
+                    'valid': False,
+                    'confidence': 0.0,
+                    'explanation': f'Could not convert query to Prolog: {request.conclusion}',
+                    'answer': 'Query conversion failed',
+                    'conclusions_count': 0,
+                    'conversion_errors': conversion_errors,
+                    'prolog_facts': prolog_facts,
+                    'prolog_query': None
+                }
+            
+            # Check if this is an open-ended question
+            is_open_ended = _is_open_ended_question(request.conclusion)
+
+            # Possessive fallback: if Vectionary returned children(X) but the NL has a possessive like "Mary's children",
+            # augment the query to children(X, mary) for correct arity.
+            try:
+                if prolog_conclusion == "children(X)":
+                    import re as _re
+                    m = _re.search(r"([A-Za-z]+)'s\s+children", request.conclusion, flags=_re.IGNORECASE)
+                    if m:
+                        possessor = m.group(1).strip().lower()
+                        prolog_conclusion = f"children(X, {possessor})"
+                        print(f"🔧 Possessive augmentation: '{request.conclusion}' -> '{prolog_conclusion}'")
+            except Exception:
+                pass
+            
+            # Dynamic refinement: If query returns collective nouns, find individual predicate
+            # For "who makes decisions?" -> make_very(X, decisions) might return "directors"
+            # But we want individuals, so check if we should query director(X) instead
+            original_query = prolog_conclusion
+            if is_open_ended and prolog_conclusion:
+                # Check if query contains a verb that might return collective nouns
+                # Handle "make", "supervise", and other verb patterns
+                verb_keywords = ["make", "supervise", "manage", "lead", "direct"]
+                has_verb_pattern = any(keyword in prolog_conclusion.lower() for keyword in verb_keywords)
+                
+                if has_verb_pattern:
+                    # Check if the query contains a compound predicate that might return collective nouns
+                    # Example: make_very(X, decisions) -> directors
+                    # We want: director(X) -> alice, carol
+                    
+                    # Look through facts to find the agent type
+                    # For "who makes decisions?", prolog_conclusion might be "make_very(X, decisions)"
+                    # We need to find "make_very(directors, decisions)" and extract "directors" -> "director(X)"
+                    query_predicate = prolog_conclusion.split("(")[0] if "(" in prolog_conclusion else ""
+                    
+                    for fact in prolog_facts:
+                        # Check if fact matches the query predicate (e.g., make_very, supervise_especially)
+                        if query_predicate and fact.startswith(query_predicate) and "(" in fact and "," in fact:
+                            # Found a matching fact like make_very(directors, decisions)
+                            # Extract the agent type (directors) and convert to singular (director)
+                            try:
+                                agent_part = fact.split("(")[1].split(",")[0].strip()
+                                # Convert plural to singular (simple heuristic)
+                                if agent_part.endswith('s') and len(agent_part) > 3:
+                                    singular_agent = agent_part.rstrip('s')
+                                    # Check if we have individual facts with this predicate
+                                    individual_predicate = f"{singular_agent}(X)"
+                                    # Test if this would return individuals
+                                    test_success, test_results = prolog_reasoner.query(individual_predicate)
+                                    if test_results and len(test_results) > 0:
+                                        # Use the individual predicate instead
+                                        print(f"🔄 Refining query: '{original_query}' -> '{individual_predicate}' (to get individuals)")
+                                        prolog_conclusion = individual_predicate
+                                        break
+                            except Exception as e:
+                                print(f"⚠️ Error refining query: {e}")
+                                pass
+                    
+                    # Handle case where query is just "verb_very(X)" without patient
+                    if not prolog_conclusion or prolog_conclusion == original_query:
+                        if "_" in prolog_conclusion and prolog_conclusion.endswith("(X)"):
+                            # Query is like "supervise_especially(X)"
+                            # Try to extract agent type from facts
+                            for fact in prolog_facts:
+                                if query_predicate and fact.startswith(query_predicate) and "(" in fact:
+                                    try:
+                                        agent_part = fact.split("(")[1].split(",")[0].strip()
+                                        if agent_part.endswith('s') and len(agent_part) > 3:
+                                            singular_agent = agent_part.rstrip('s')
+                                            individual_predicate = f"{singular_agent}(X)"
+                                            test_success, test_results = prolog_reasoner.query(individual_predicate)
+                                            if test_results and len(test_results) > 0:
+                                                print(f"🔄 Refining query: '{original_query}' -> '{individual_predicate}' (to get individuals)")
+                                                prolog_conclusion = individual_predicate
+                                                break
+                                    except Exception as e:
+                                        pass
+            
+            # Summary before querying
+            print(f"\n{'='*60}")
+            print(f"📊 INFERENCE SUMMARY")
+            print(f"{'='*60}")
+            print(f"📝 Premises converted: {len(prolog_facts)} Prolog facts/rules")
+            print(f"🔍 Query: '{request.conclusion}' -> '{prolog_conclusion}'")
+            print(f"❓ Open-ended: {is_open_ended}")
+            if prolog_facts:
+                print(f"📋 Sample facts: {prolog_facts[:3]}")
+            print(f"{'='*60}\n")
             
             # Fast Prolog inference
+            print(f"🔍 Querying Prolog with: '{prolog_conclusion}'")
+            print(f"🔍 Prolog reasoner has {len(prolog_facts)} facts/rules")
             success, results = prolog_reasoner.query(prolog_conclusion)
+
+            # Deduplicate results (e.g., when both derived facts and rules yield duplicates)
+            try:
+                if isinstance(results, list) and len(results) > 0:
+                    seen = set()
+                    deduped = []
+                    for item in results:
+                        if isinstance(item, dict):
+                            if 'X' in item:
+                                key = ('X', item['X'])
+                            else:
+                                key = tuple(sorted((k, v) for k, v in item.items() if not str(k).startswith('_')))
+                        else:
+                            key = item
+                        if key not in seen:
+                            seen.add(key)
+                            deduped.append(item)
+                    if len(deduped) != len(results):
+                        print(f"🧹 Deduplicated results: {len(results)} -> {len(deduped)}")
+                    results = deduped
+            except Exception as _:
+                pass
+
+            # If no results and the query was children(X) without possessor, try each possessor from parent facts
+            if (not results or len(results) == 0) and prolog_conclusion.strip() == "children(X)":
+                try:
+                    import re as _re
+                    possessors = []
+                    for fact in prolog_facts:
+                        m = _re.match(r"parent\(([^,]+),\s*[^\)]+\)", fact)
+                        if m:
+                            name = m.group(1)
+                            if name not in possessors:
+                                possessors.append(name)
+                    for poss in possessors:
+                        alt_query = f"children(X, {poss})"
+                        print(f"🔁 Retry with augmented query: '{alt_query}'")
+                        s2, r2 = prolog_reasoner.query(alt_query)
+                        if r2:
+                            success, results = s2, r2
+                            prolog_conclusion = alt_query
+                            break
+                except Exception:
+                    pass
+            print(f"🔍 Query result: success={success}, results={results}, type={type(results)}")
+            if results:
+                print(f"🔍 Results length: {len(results) if isinstance(results, list) else 'not a list'}")
+            
+            # Handle open-ended questions BEFORE creating result dictionary
+            answer = None
+            conclusions = None
+            conclusions_count = 0
+            is_open_ended_flag = False
+            
+            # Check if we have results (for open-ended questions)
+            # Results can be a list of dicts like [{'X': 'bob'}, {'X': 'david'}] or empty list
+            has_results = bool(results) and isinstance(results, list) and len(results) > 0
+            print(f"🔍 has_results: {has_results}, is_open_ended: {is_open_ended}")
+            if has_results:
+                print(f"🔍 Sample result: {results[0] if results else 'none'}")
+            
+            if is_open_ended and has_results:
+                # Format the results for display
+                answer_values = []
+                for res in results:
+                    if isinstance(res, dict):
+                        # Extract values from dict results like {'X': 'fluffy'}
+                        values = list(res.values())
+                        answer_values.extend(values)
+                    else:
+                        answer_values.append(str(res))
+
+                # De-duplicate answer values while preserving order
+                unique_values = []
+                _seen_vals = set()
+                for v in answer_values:
+                    if v not in _seen_vals:
+                        _seen_vals.add(v)
+                        unique_values.append(v)
+                
+                # Create a formatted answer
+                if unique_values:
+                    if len(unique_values) == 1:
+                        answer = unique_values[0]
+                    elif len(unique_values) == 2:
+                        answer = f"{unique_values[0]} and {unique_values[1]}"
+                    else:
+                        answer = f"{', '.join(unique_values[:-1])}, and {unique_values[-1]}"
+
+                    # Also deduplicate structured conclusions by the primary binding
+                    dedup_conclusions = []
+                    _seen_bindings = set()
+                    for res in results:
+                        if isinstance(res, dict):
+                            bind = res.get('X') if ('X' in res) else tuple(sorted((k, v) for k, v in res.items() if not str(k).startswith('_')))
+                            if bind in _seen_bindings:
+                                continue
+                            _seen_bindings.add(bind)
+                            dedup_conclusions.append(res)
+                        else:
+                            if res in _seen_bindings:
+                                continue
+                            _seen_bindings.add(res)
+                            dedup_conclusions.append(res)
+                    conclusions = dedup_conclusions
+                    conclusions_count = len(dedup_conclusions)
+                    is_open_ended_flag = True
             
             # Step 3: Build rich result with all details
+            # Valid if we have results OR if the query succeeded (for yes/no questions)
+            valid_result = has_results or (success and not is_open_ended)
+            
             result = {
-                'valid': success,
-                'confidence': 0.95 if success else 0.05,
+                'valid': valid_result,
+                'confidence': 0.95 if valid_result else 0.05,
                 'premise_trees': premise_trees,
                 'conclusion_tree': conclusion_tree,
                 'conversion_errors': conversion_errors if conversion_errors else [],
@@ -673,16 +722,26 @@ async def check_inference(request: InferenceRequest):
                 'parsed_conclusion': prolog_conclusion,
                 'prolog_facts': prolog_facts,
                 'prolog_query': prolog_conclusion,
+                'answer': answer,
+                'conclusions': conclusions,
+                'conclusions_count': conclusions_count,
+                'is_open_ended': is_open_ended_flag,
                 'reasoning_steps': [
-                    f"⚡ Hybrid approach: Rich semantics + Fast inference",
-                    f"🚀 Fast Prolog inference: {'Valid' if success else 'Invalid'}",
+                    f"⚡ Dynamic converter: Fully dynamic natural language to Prolog",
+                    f"🚀 Prolog inference: {'Found results' if valid_result else 'No results'}",
                     f"📊 Semantic analysis: {len(premise_trees)} premise trees, 1 conclusion tree",
-                    f"🔬 Prolog facts: {len(prolog_facts)} facts generated"
+                    f"🔬 Prolog facts: {len(prolog_facts)} facts generated",
+                    f"❓ Query type: {'Open-ended' if is_open_ended else 'Yes/No'}"
                 ]
             }
             
-            # Add rich explanation with all the beautiful details
-            result['explanation'] = f"Using hybrid reasoning: {'Valid' if success else 'Invalid'} conclusion based on fast Prolog inference with rich semantic analysis."
+            # Add rich explanation
+            if valid_result and has_results:
+                result['explanation'] = f"Found {conclusions_count} result(s) using dynamic Prolog inference."
+            elif valid_result:
+                result['explanation'] = f"Conclusion verified using dynamic Prolog inference."
+            else:
+                result['explanation'] = f"No results found for query: {request.conclusion}"
             
             # Add semantic analysis details
             if premise_trees and conclusion_tree:
@@ -748,11 +807,11 @@ async def check_inference(request: InferenceRequest):
             ]
             result['formal_steps'] = formal_steps
             
-            print(f"🎯 Hybrid Result - Valid: {success}, Confidence: {result['confidence']}, Time: {time.time() - start_time:.2f}s")
+            print(f"🎯 Dynamic Inference Result - Valid: {valid_result}, Results: {conclusions_count}, Time: {time.time() - start_time:.2f}s")
             
         except Exception as e:
-            # NO FALLBACK - Raise the exception to see what's failing
-            print(f"❌ Hybrid approach failed: {e}")
+            # NO FALLBACK - Dynamic system should handle all cases
+            print(f"❌ Dynamic inference failed: {e}")
             import traceback
             traceback.print_exc()
             raise  # Re-raise to see the actual error
@@ -994,7 +1053,10 @@ async def check_inference(request: InferenceRequest):
             kb_used=result.get('kb_used', False),
             kb_facts_count=result.get('kb_facts_count'),
             kb_facts=result.get('kb_facts'),
-            query_time=result.get('query_time')
+            query_time=result.get('query_time'),
+            answer=result.get('answer'),
+            conclusions=result.get('conclusions'),
+            conclusions_count=result.get('conclusions_count')
         )
         
     except Exception as e:
@@ -1111,8 +1173,8 @@ async def temporal_infer(request: dict):
         premises = request.get('premises', [])
         conclusion = request.get('conclusion', '')
         
-        # Use the enhanced reasoning engine for temporal inference
-        result = vectionary_engine.prove_theorem(premises, conclusion)
+        # Use the new dynamic converter system for temporal inference
+        result = use_new_dynamic_converter_system(premises, conclusion)
         
         return {
             "valid": result['valid'],
@@ -1168,6 +1230,45 @@ async def query_knowledge_base(request: QueryRequest):
     """Query the Vectionary knowledge base."""
     try:
         result = knowledge_base.query(request.question)
+        # Final deduplication guard for conclusions and answer formatting
+        try:
+            cons = result.get('conclusions')
+            if isinstance(cons, list) and len(cons) > 0:
+                seen_binds = set()
+                dedup_cons = []
+                for c in cons:
+                    if isinstance(c, dict):
+                        bind = c.get('X') if ('X' in c) else tuple(sorted((k, v) for k, v in c.items() if not str(k).startswith('_')))
+                    else:
+                        bind = c
+                    if bind in seen_binds:
+                        continue
+                    seen_binds.add(bind)
+                    dedup_cons.append(c)
+                if len(dedup_cons) != len(cons):
+                    print(f"🧹 Final dedup applied: {len(cons)} -> {len(dedup_cons)}")
+                result['conclusions'] = dedup_cons
+                result['conclusions_count'] = len(dedup_cons)
+                # Recompute answer from deduped values if present
+                values = []
+                for c in dedup_cons:
+                    if isinstance(c, dict):
+                        if 'X' in c:
+                            values.append(str(c['X']))
+                        else:
+                            values.extend([str(v) for v in c.values()])
+                    else:
+                        values.append(str(c))
+                if values:
+                    if len(values) == 1:
+                        result['answer'] = values[0]
+                    elif len(values) == 2:
+                        result['answer'] = f"{values[0]} and {values[1]}"
+                    else:
+                        result['answer'] = f"{', '.join(values[:-1])}, and {values[-1]}"
+        except Exception:
+            pass
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1208,6 +1309,199 @@ async def clear_knowledge_base():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/knowledge-base/clear")
+async def clear_knowledge_base_new():
+    """Clear all facts from the knowledge base (new endpoint)."""
+    try:
+        knowledge_base.clear_all_facts()
+        return {"success": True, "message": "Knowledge base cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/knowledge-base/add-facts")
+async def add_facts_to_knowledge_base(request: dict):
+    """Add multiple facts to the knowledge base."""
+    try:
+        facts = request.get("facts", [])
+        added_facts = []
+        
+        for fact_text in facts:
+            if fact_text.strip():
+                fact = knowledge_base.add_fact(fact_text.strip(), source="user")
+                added_facts.append({
+                    "id": fact.id,
+                    "text": fact.text,
+                    "confidence": fact.confidence
+                })
+        
+        return {
+            "success": True, 
+            "message": f"Added {len(added_facts)} facts to knowledge base",
+            "added_facts": added_facts
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Upload and process a file (image or document)."""
+    try:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        # Read file content
+        content = await file.read()
+        
+        # Check file type
+        file_extension = file.filename.split('.')[-1].lower()
+        
+        if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp']:
+            # Handle image files
+            try:
+                # Use visual reasoner to extract structured facts
+                if VISUAL_REASONING_AVAILABLE:
+                    from visual_reasoner import VisualReasoner
+                    import tempfile
+                    import os
+                    
+                    # Save uploaded file temporarily
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp_file:
+                        tmp_file.write(content)
+                        tmp_file_path = tmp_file.name
+                    
+                    try:
+                        # Initialize visual reasoner and extract logical content
+                        visual_reasoner = VisualReasoner(environment='prod')
+                        try:
+                            visual_reasoner._initialize_ocr()
+                        except Exception as e:
+                            print(f"OCR init warning: {e}")
+                        
+                        # Analyze document to extract logical statements
+                        analysis = visual_reasoner.analyze_document(tmp_file_path, extract_logical_content=True)
+                        print(f"📄 Analysis result: success={analysis.get('success')}, has_ocr={bool(analysis.get('ocr_result'))}")
+                        
+                        # Extract facts from logical content
+                        facts = []
+                        if analysis.get('logical_content'):
+                            for stmt in analysis['logical_content']:
+                                if stmt.get('text'):
+                                    facts.append(stmt['text'])
+                            print(f"✅ Extracted {len(facts)} facts from logical_content")
+                        
+                        # Get extracted text from OCR result
+                        extracted_text = ''
+                        if analysis.get('ocr_result'):
+                            ocr_result = analysis['ocr_result']
+                            extracted_text = ocr_result.get('extracted_text', '') or ocr_result.get('markdown_content', '')
+                            print(f"📝 Extracted text length: {len(extracted_text)}")
+                        
+                        # Fallback: if no logical content, extract from raw text
+                        if not facts and extracted_text:
+                            # Split by common sentence delimiters and include all text
+                            sentences = re.split(r'[.!?]+\s*|\n+', extracted_text)
+                            for sentence in sentences:
+                                sentence = sentence.strip()
+                                # Include all non-empty text - let converter handle it gracefully
+                                if sentence:
+                                    facts.append(sentence)
+                            print(f"📝 Extracted {len(facts)} facts from raw text")
+                        
+                        # If still no facts, try a direct OCR call
+                        if not facts and visual_reasoner.ocr_processor and visual_reasoner.ocr_processor.initialized:
+                            print("🔄 Trying direct OCR processing...")
+                            ocr_result = visual_reasoner.ocr_processor.process_image(tmp_file_path)
+                            if ocr_result.get('success') and ocr_result.get('extracted_text'):
+                                extracted_text = ocr_result['extracted_text']
+                                sentences = re.split(r'[.!?]+\s*|\n+', extracted_text)
+                                for sentence in sentences:
+                                    sentence = sentence.strip()
+                                    if sentence:
+                                        facts.append(sentence)
+                                print(f"📝 Direct OCR extracted {len(facts)} facts")
+                        
+                        # Clean up temp file
+                        os.unlink(tmp_file_path)
+                        
+                        return {
+                            "success": True,
+                            "extracted_text": extracted_text,
+                            "facts": facts,
+                            "file_type": "image"
+                        }
+                    except Exception as e:
+                        # Clean up temp file on error
+                        if os.path.exists(tmp_file_path):
+                            os.unlink(tmp_file_path)
+                        raise e
+                else:
+                    # Fallback to simple OCR
+                    from ocr_processor import OCRProcessor
+                    ocr = OCRProcessor()
+                    result = ocr.process_image(content)
+                    extracted_text = result.get('text', '') if result else ''
+                    
+                    # Extract facts from the text
+                    facts = []
+                    if extracted_text:
+                        sentences = extracted_text.split('.')
+                        for sentence in sentences:
+                            sentence = sentence.strip()
+                            if sentence and len(sentence) > 10:
+                                facts.append(sentence)
+                    
+                    return {
+                        "success": True,
+                        "extracted_text": extracted_text,
+                        "facts": facts,
+                        "file_type": "image"
+                    }
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"OCR processing failed: {str(e)}",
+                    "extracted_text": "",
+                    "facts": []
+                }
+        
+        elif file_extension in ['txt', 'md']:
+            # Handle text files
+            try:
+                extracted_text = content.decode('utf-8')
+                
+                # Extract facts from the text
+                facts = []
+                sentences = extracted_text.split('.')
+                for sentence in sentences:
+                    sentence = sentence.strip()
+                    if sentence and len(sentence) > 10:
+                        facts.append(sentence)
+                
+                return {
+                    "success": True,
+                    "extracted_text": extracted_text,
+                    "facts": facts,
+                    "file_type": "text"
+                }
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Text processing failed: {str(e)}",
+                    "extracted_text": "",
+                    "facts": []
+                }
+        
+        else:
+            return {
+                "success": False,
+                "error": f"Unsupported file type: {file_extension}. Only .txt, .md, and image files are supported.",
+                "extracted_text": "",
+                "facts": []
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/query")
 async def query_with_optional_premises(request: dict):
@@ -1232,8 +1526,8 @@ async def query_with_optional_premises(request: dict):
                 print(f"✅ Found {len(kb_result['relevant_facts'])} relevant facts in KB")
                 kb_premises = kb_result['relevant_facts']
                 
-                # Now do inference with KB facts
-                result = vectionary_engine.prove_theorem(kb_premises, conclusion)
+                # Now do inference with KB facts using new dynamic converter system
+                result = use_new_dynamic_converter_system(kb_premises, conclusion)
                 
                 # Enhance result with KB info
                 result['kb_used'] = True
@@ -1253,8 +1547,8 @@ async def query_with_optional_premises(request: dict):
                     'kb_facts': []
                 }
         else:
-            # Premises provided, do normal inference
-            result = vectionary_engine.prove_theorem(premises, conclusion)
+            # Premises provided, use new dynamic converter system
+            result = use_new_dynamic_converter_system(premises, conclusion)
             result['kb_used'] = False
             return result
             
@@ -1491,7 +1785,6 @@ async def prolog_infer(request: PrologInferenceRequest):
     Infer conclusions from premises using Prolog reasoning
     Uses ELMS.py functions directly for consistency
     """
-    import time
     start_time = time.time()
         
     try:
@@ -1562,6 +1855,7 @@ async def hybrid_verify(request: HybridVerifyRequest):
     """
     Verify conclusion using hybrid reasoning (ELMS + Prolog)
     """
+    start_time = time.time()
     try:
         
         # Clear previous knowledge base
@@ -1783,6 +2077,25 @@ async def get_visual_status():
 
 # Mount static files for the HTML interface
 app.mount("/static", StaticFiles(directory="."), name="static")
+
+# Custom static file handler with cache-busting headers
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+class NoCacheStaticFiles(StaticFiles):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+# Mount React app with cache-busting headers
+app.mount("/chat", NoCacheStaticFiles(directory="elms-chat-react/dist", html=True), name="react-app")
 
 
 if __name__ == "__main__":

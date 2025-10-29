@@ -53,3 +53,6 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# Vectionary knowledge base 
+vectionary_knowledge_base.json

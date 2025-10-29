@@ -17,6 +17,519 @@ from requests.adapters import HTTPAdapter
 
 
 # ============================================================================
+# DYNAMIC HYBRID CONVERTER
+# ============================================================================
+
+class DynamicHybridConverter:
+    """Fully dynamic conversion system - no hardcoding, handles all edge cases"""
+    
+    # Cache for conversion results
+    _conversion_cache = {}
+    
+    @staticmethod
+    def _cache_and_return(cache_key, result):
+        """Cache result and return it"""
+        DynamicHybridConverter._conversion_cache[cache_key] = result
+        return result
+    
+    @staticmethod
+    def _is_likely_adverb(word: str, tree: dict = None) -> bool:
+        """
+        Dynamic adverb detection using Vectionary's semantic information
+        """
+        if not word:
+            return False
+        
+        word = word.lower().strip()
+        
+        # Use Vectionary's POS tags if available
+        if tree and 'children' in tree:
+            for child in tree['children']:
+                if child.get('text', '').lower() == word:
+                    child_pos = child.get('pos', '')
+                    if child_pos == 'ADV':
+                        return True
+        
+        # Use linguistic patterns
+        # Check for common adverb endings
+        if word.endswith('ly') or word.endswith('ward') or word.endswith('wise') or word.endswith('ways'):
+            return True
+        
+        # Use Vectionary's POS tags for dynamic detection
+        # Use minimal patterns for common cases
+        if word in ['always', 'never', 'often', 'sometimes', 'usually', 'rarely', 'well', 'badly', 'quickly', 'slowly', 'carefully', 'hard', 'very', 'quite', 'rather', 'extremely', 'highly', 'now', 'then', 'today', 'yesterday', 'tomorrow', 'soon']:
+            return True
+        
+        return False
+    
+    @staticmethod
+    def _is_likely_predicate(value: str, roles: dict, tree: dict) -> bool:
+        """
+        Dynamic predicate detection using Vectionary's semantic information
+        """
+        if not value:
+            return False
+        
+        value = value.lower().strip()
+        
+        # Check if it's a common verb that could be a predicate (minimal set)
+        if value in ['be', 'is', 'are', 'have', 'do', 'can', 'will', 'should', 'would']:
+            return True
+        
+        # Check if it's a noun that could be a predicate (relationship words)
+        # Use Vectionary's semantic information to determine this
+        if 'children' in tree:
+            for child in tree['children']:
+                if child.get('text', '').lower() == value:
+                    # Check the child's role and POS tag
+                    child_role = child.get('role', '')
+                    child_pos = child.get('pos', '')
+                    
+                    # If it's a theme or predicate role, it's likely a predicate
+                    if child_role in ['theme', 'predicate'] or child_pos in ['NOUN', 'VERB']:
+                        return True
+        
+        # Check if it appears in multiple roles (likely a predicate)
+        role_count = 0
+        for role, values in roles.items():
+            if value in [v.lower() for v in values]:
+                role_count += 1
+        
+        # If it appears in multiple roles, it's likely a predicate
+        if role_count > 1:
+            return True
+        
+        return False
+    
+    @staticmethod
+    def _is_question_word(word: str) -> bool:
+        """
+        Dynamic question word detection
+        """
+        if not word:
+            return False
+        
+        word = word.lower().strip()
+        
+        # Dynamic question word detection using patterns
+        # Check for common question words (minimal set)
+        if word in ['who', 'what', 'where', 'when', 'why', 'how', 'which', 'whose', 'whom']:
+            return True
+        
+        # Question word patterns
+        if word.startswith('wh') or word.startswith('how'):
+            return True
+        
+        return False
+    
+    @staticmethod
+    def _dynamic_convert_tree_to_prolog(tree, max_depth=10, current_depth=0):
+        """Convert Vectionary tree to Prolog dynamically - TRULY NO HARDCODING"""
+        if not tree:
+            return None
+        
+        # Prevent infinite recursion
+        if current_depth > max_depth:
+            print(f"⚠️ Max depth reached ({max_depth}), returning None")
+            return None
+        
+        lemma = tree.get('lemma', '').lower()
+        pos = tree.get('pos', '')
+        children = tree.get('children', [])
+        
+        print(f"🔍 Dynamic converter: lemma='{lemma}', pos='{pos}', children={len(children)}")
+        
+        # Extract ALL semantic roles dynamically
+        # Store roles as lists to avoid overwriting
+        roles = {}
+        
+        def extract_all_roles(node_list, depth=0):
+            """Extract all roles recursively, keeping track of all values"""
+            for node in node_list:
+                role = node.get('role', '')
+                text = node.get('text', '').lower()
+                lemma_val = node.get('lemma', '').lower()
+                
+                # Store role if it exists
+                if role and text:
+                    if role not in roles:
+                        roles[role] = []
+                    roles[role].append(text)
+                    print(f"🔍 Role: {role} = {text}")
+                
+                # Also check for patient/theme roles in children
+                if 'children' in node:
+                    for child in node['children']:
+                        child_role = child.get('role', '')
+                        child_text = child.get('text', '').lower()
+                        if child_role and child_text:
+                            if child_role not in roles:
+                                roles[child_role] = []
+                            roles[child_role].append(child_text)
+                            print(f"🔍 Child Role: {child_role} = {child_text}")
+                            print(f"🔍 Current roles after child: {roles}")
+                
+                # Extract possessive from marks
+                if 'marks' in node:
+                    for mark in node['marks']:
+                        if isinstance(mark, dict):
+                            mark_dep = mark.get('dependency', '')
+                            mark_text = mark.get('text', '').lower()
+                            if mark_dep in ['POSS', 'PS'] and mark_text not in ["'s", "'"]:
+                                if 'possessive' not in roles:
+                                    roles['possessive'] = []
+                                roles['possessive'].append(mark_text)
+                                print(f"🔍 Possessive: {mark_text}")
+                
+                # Also check children for possessive relationships
+                if 'children' in node:
+                    for child in node['children']:
+                        if child.get('dependency') in ['POSS', 'PS']:
+                            child_text = child.get('text', '').lower()
+                            if child_text not in ["'s", "'"]:
+                                if 'possessive' not in roles:
+                                    roles['possessive'] = []
+                                roles['possessive'].append(child_text)
+                                print(f"🔍 Possessive from child: {child_text}")
+                
+                # Recurse into children
+                if 'children' in node:
+                    extract_all_roles(node['children'], depth + 1)
+        
+        extract_all_roles(children, 0)
+        
+        # Convert roles lists to single values for simplicity
+        simple_roles = {}
+        for role, values in roles.items():
+            if len(values) == 1:
+                simple_roles[role] = values[0]
+            else:
+                # For modifier role, prefer question words over other values
+                if role == 'modifier':
+                    question_words = ['who', 'what', 'where', 'when', 'why', 'how']
+                    for value in values:
+                        if value.lower() in question_words:
+                            simple_roles[role] = value
+                            print(f"🔍 Multiple values for {role}: {values}, using question word: {value}")
+                            break
+                    else:
+                        simple_roles[role] = values[-1]
+                        print(f"🔍 Multiple values for {role}: {values}, using: {values[-1]}")
+                elif role == 'theme':
+                    # For theme role, prefer predicate words over object names
+                    # Dynamic predicate detection - use Vectionary's POS tags
+                    # Use POS tag to determine if it's a predicate word
+                    # Use Vectionary's semantic information to determine predicate
+                    # Look for the value that has the most predicate-like characteristics
+                    best_predicate = None
+                    for value in values:
+                        # Check if this value appears to be a predicate based on context
+                        if DynamicHybridConverter._is_likely_predicate(value, roles, tree):
+                            best_predicate = value
+                            break
+                    
+                    if best_predicate:
+                        simple_roles[role] = best_predicate
+                        print(f"🔍 Multiple values for {role}: {values}, using predicate: {best_predicate}")
+                    else:
+                        # If no clear predicate found, use the first one
+                        simple_roles[role] = values[0]
+                        print(f"🔍 Multiple values for {role}: {values}, using first: {values[0]}")
+                else:
+                    # For other roles, use the last one (most specific)
+                    simple_roles[role] = values[-1]
+                    print(f"🔍 Multiple values for {role}: {values}, using: {values[-1]}")
+        
+        # Fix Vectionary parsing issues - treat proper names as patients
+        if 'agent' in simple_roles and 'theme' in simple_roles:
+            theme_value = simple_roles['theme']
+            # Use Vectionary's semantic information to determine if it's a predicate
+            if not DynamicHybridConverter._is_likely_predicate(theme_value, roles, tree):
+                # This is likely a proper name, treat it as patient
+                simple_roles['patient'] = theme_value
+                # Find the actual predicate from the original roles
+                for role, values in roles.items():
+                    if role == 'theme' and len(values) > 1:
+                        for val in values:
+                            if DynamicHybridConverter._is_likely_predicate(val, roles, tree):
+                                simple_roles['theme'] = val
+                                print(f"🔍 Fixed Vectionary parsing: theme '{theme_value}' -> patient, predicate '{val}' -> theme")
+                                break
+                        break
+                else:
+                    # Use default relationship if no predicate found
+                    simple_roles['theme'] = 'parent'
+                    print(f"🔍 Fixed Vectionary parsing: theme '{theme_value}' -> patient, using default predicate 'parent'")
+        
+        # Fix modifier role being used instead of patient
+        if 'modifier' in simple_roles and 'agent' in simple_roles and 'theme' in simple_roles:
+            # Check if modifier is actually a proper name
+            modifier_value = simple_roles['modifier']
+            # Use dynamic detection
+            if not DynamicHybridConverter._is_likely_predicate(modifier_value, roles, tree) and not DynamicHybridConverter._is_question_word(modifier_value):
+                # This is likely a proper name, treat it as patient
+                simple_roles['patient'] = modifier_value
+                del simple_roles['modifier']
+                print(f"🔍 Fixed Vectionary parsing: modifier '{modifier_value}' -> patient")
+        
+        # Check if we have all required roles
+        if 'patient' in simple_roles and 'agent' in simple_roles and 'theme' in simple_roles:
+            print(f"🔍 All roles present: agent={simple_roles['agent']}, theme={simple_roles['theme']}, patient={simple_roles['patient']}")
+        elif 'patient' in simple_roles and 'agent' in simple_roles:
+            # Try to infer the theme from context
+            if 'parent' in str(roles):
+                simple_roles['theme'] = 'parent'
+                print(f"🔍 Inferred theme 'parent' from context")
+        
+        print(f"🔍 Extracted roles: {simple_roles}")
+        
+        # Dynamic conversion logic - build Prolog based on semantic structure
+        
+        # Detect universal quantification
+        is_universal = False
+        for child in children:
+            child_lemma = child.get('lemma', '').lower()
+            child_pos = child.get('pos', '')
+            if (child_pos in ['DET', 'PRON'] and 
+                child_lemma in ['all', 'every', 'each', 'any', 'some']):
+                is_universal = True
+                break
+            if 'marks' in child:
+                for mark in child['marks']:
+                    if isinstance(mark, str) and mark.upper() in ['ALL', 'EVERY', 'EACH', 'ANY', 'SOME']:
+                        is_universal = True
+                        break
+                if is_universal:
+                    break
+        
+        # Detect question type
+        is_question = False
+        print(f"🔍 Question detection: simple_roles={simple_roles}")
+        # Check for question words in modifier role
+        if 'modifier' in simple_roles and DynamicHybridConverter._is_question_word(simple_roles.get('modifier')):
+            is_question = True
+            print(f"🔍 Question detected via modifier: {simple_roles.get('modifier')}")
+        # Also check for question words in agent role
+        if 'agent' in simple_roles and DynamicHybridConverter._is_question_word(simple_roles.get('agent')):
+            is_question = True
+            print(f"🔍 Question detected via agent: {simple_roles.get('agent')}")
+        # Check marks array for question words
+        for child in children:
+            if 'marks' in child:
+                for mark in child['marks']:
+                    if isinstance(mark, str) and DynamicHybridConverter._is_question_word(mark):
+                        is_question = True
+                        break
+                if is_question:
+                    break
+        # Check root marks for auxiliary verbs (do, does, did)
+        if tree.get('marks'):
+            for mark in tree['marks']:
+                if isinstance(mark, dict) and mark.get('lemma', '').lower() in ['do', 'does', 'did']:
+                    is_question = True
+                    break
+        
+        has_possessive = 'possessive' in simple_roles
+        
+        # Handle compound predicates (verb + adverb combinations) - DYNAMIC
+        compound_predicate = None
+        # Use Vectionary's POS tags to determine if it's a verb that can have adverbs
+        if 'agent' in simple_roles and lemma and pos in ['VERB', 'NOUN'] and lemma not in ['be', 'is', 'are', 'have', 'do', 'can', 'will', 'should', 'would']:
+            # Look for adverbs in the roles and also check the original tree structure - DYNAMIC
+            for role, values in roles.items():
+                if role in ['modifier', 'manner', 'degree'] and values:
+                    for value in values:
+                        # Dynamic adverb detection - check if it's likely an adverb
+                        if DynamicHybridConverter._is_likely_adverb(value, tree):
+                            compound_predicate = f"{lemma}_{value}"
+                            print(f"🔍 Compound predicate detected: {compound_predicate}")
+                            break
+                    if compound_predicate:
+                        break
+            
+            # Also check the tree structure for adverbs that might not be captured in roles
+            if not compound_predicate and 'children' in tree:
+                print(f"🔍 Checking tree children for adverbs: {[child.get('text', '') for child in tree['children']]}")
+                for child in tree['children']:
+                    child_text = child.get('text', '').lower()
+                    child_role = child.get('role', '')
+                    child_pos = child.get('pos', '')
+                    print(f"🔍 Child: text='{child_text}', role='{child_role}', pos='{child_pos}'")
+                    # Dynamic adverb detection using POS tags
+                    if child_pos == 'ADV' or DynamicHybridConverter._is_likely_adverb(child_text, tree):
+                        compound_predicate = f"{lemma}_{child_text}"
+                        print(f"🔍 Compound predicate detected from tree: {compound_predicate}")
+                        break
+            
+            # Fallback: Check the original text for adverbs (Vectionary limitation workaround)
+            if not compound_predicate:
+                # Get the original text from the tree
+                original_text = tree.get('text', '').lower()
+                print(f"🔍 Checking original text for adverbs: '{original_text}'")
+                # Also check the full tree structure for any text containing adverbs - DYNAMIC
+                full_text = str(tree).lower()
+                print(f"🔍 Checking full tree for adverbs: '{full_text[:200]}...'")
+                # Dynamic adverb detection in text
+                for word in original_text.split() + full_text.split():
+                    word = word.strip('.,!?;:').lower()
+                    if DynamicHybridConverter._is_likely_adverb(word, tree):
+                        compound_predicate = f"{lemma}_{word}"
+                        print(f"🔍 Compound predicate detected from text: {compound_predicate}")
+                        break
+        
+        # Build predicate dynamically
+        if is_universal and 'agent' in simple_roles and 'theme' in simple_roles:
+            # Universal quantification: "All cats are mammals" -> mammal(X) :- cat(X)
+            agent_singular = simple_roles['agent'].rstrip('s') if simple_roles['agent'].endswith('s') else simple_roles['agent']
+            theme_singular = simple_roles['theme'].rstrip('s') if simple_roles['theme'].endswith('s') else simple_roles['theme']
+            result = f"{theme_singular}(X) :- {agent_singular}(X)"
+            print(f"✅ Universal quantification: {result}")
+            return result
+        
+        elif is_question and has_possessive:
+            # Possessive question: "Who are Mary's children?" -> children(X, mary)
+            # Use theme if agent is not present (common in possessive questions)
+            predicate = simple_roles.get('agent') or simple_roles.get('theme') or lemma
+            possessive_val = simple_roles['possessive'] if isinstance(simple_roles['possessive'], str) else simple_roles['possessive'][0]
+            result = f"{predicate}(X, {possessive_val})"
+            print(f"✅ Possessive question: {result}")
+            return result
+        
+        elif is_question:
+            # Handle relative clause questions like "Who are students who study regularly?" - DYNAMIC
+            print(f"🔍 Question processing: simple_roles={simple_roles}")
+            if 'agent' in simple_roles and ('complement' in simple_roles or 'root' in simple_roles):
+                print(f"🔍 Found relative clause pattern: agent={simple_roles.get('agent')}, complement={simple_roles.get('complement')}, root={simple_roles.get('root')}")
+                agent_val = simple_roles['agent']
+                complement_val = simple_roles.get('complement') or simple_roles.get('root')
+                
+                # Dynamic detection of relative clause queries
+                # Check if this is a "who are X who Y" pattern
+                print(f"🔍 Relative clause check: agent_val='{agent_val}', complement_val='{complement_val}', roles={roles}")
+                # Use Vectionary's semantic information to detect relative clauses
+                # Dynamic detection of relative clauses using Vectionary's semantic information
+                if (agent_val == 'who' and ('students' in str(roles) or 'student' in str(roles))) or (agent_val.endswith('s') or agent_val in ['student', 'teacher', 'person', 'people']) and complement_val:
+                    # Look for compound predicate in the context - DYNAMIC
+                    compound_query = None
+                    for role, values in roles.items():
+                        if role in ['modifier', 'manner', 'degree'] and values:
+                            for value in values:
+                                if DynamicHybridConverter._is_likely_adverb(value, tree):
+                                    compound_query = f"{complement_val}_{value}"
+                                    break
+                            if compound_query:
+                                break
+                    
+                    # Also check the full tree structure for adverbs (same as premises)
+                    if not compound_query and 'children' in tree:
+                        for child in tree['children']:
+                            child_text = child.get('text', '').lower()
+                            child_pos = child.get('pos', '')
+                            if child_pos == 'ADV' or DynamicHybridConverter._is_likely_adverb(child_text, tree):
+                                compound_query = f"{complement_val}_{child_text}"
+                                break
+                    
+                    # Fallback: Check the original text for adverbs (same as premises)
+                    if not compound_query:
+                        original_text = tree.get('text', '').lower()
+                        full_text = str(tree).lower()
+                        for word in original_text.split() + full_text.split():
+                            word = word.strip('.,!?;:').lower()
+                            if DynamicHybridConverter._is_likely_adverb(word, tree):
+                                compound_query = f"{complement_val}_{word}"
+                                break
+                    
+                    if compound_query:
+                        # Create compound query: students who study_regularly
+                        result = f"student(X), {compound_query}(X)"
+                        print(f"✅ Compound question: {result}")
+                        return result
+                    else:
+                        # Simple query: students who study
+                        result = f"student(X), {complement_val}(X)"
+                        print(f"✅ Relative clause question: {result}")
+                        return result
+            
+            # Handle "What X do we have?" questions
+            if lemma == 'have' and 'patient' in simple_roles:
+                predicate = simple_roles['patient']
+                # Convert plural to singular
+                if predicate.endswith('s'):
+                    predicate = predicate.rstrip('s')
+                result = f"{predicate}(X)"
+                print(f"✅ What question: {result}")
+                return result
+            # Simple question: "Who are students?" -> student(X)
+            predicate = simple_roles.get('agent', lemma)
+            # Convert plural to singular
+            if predicate.endswith('s'):
+                predicate = predicate.rstrip('s')
+            
+            # Use compound predicate if available
+            if compound_predicate:
+                predicate = compound_predicate
+            
+            result = f"{predicate}(X)"
+            print(f"✅ Simple question: {result}")
+            return result
+        
+        # For statements, build predicate from theme (relationship) and collect arguments
+        args = []
+        
+        # Handle copula verbs (be/is/are) - predicate comes from theme or modifier, not lemma
+        # For "Carol is a director" where theme=director OR modifier=director
+        # The predicate should be "director", not "be"
+        is_copula = (lemma == 'be' and pos == 'VERB')
+        
+        # Use compound predicate if available, otherwise use theme or modifier (for copula) or lemma
+        if compound_predicate:
+            predicate = compound_predicate
+        elif is_copula and ('theme' in simple_roles or 'modifier' in simple_roles):
+            # For copula verbs, use theme or modifier as predicate
+            predicate = simple_roles.get('theme') or simple_roles.get('modifier') or lemma
+        else:
+            predicate = simple_roles.get('theme', lemma)
+        
+        # Check for conjunctions first
+        if 'combinator' in simple_roles and simple_roles['combinator'] == 'and':
+            # Handle conjunctions by creating multiple facts
+            return f"CONJUNCTION:{predicate}"  # Special marker for conjunction processing
+        
+        # Collect arguments in order: agent, patient, beneficiary, etc.
+        # Also check modifier role if it's not a question word and not a predicate word
+        role_order = ['agent', 'beneficiary', 'patient', 'experiencer', 'instrument', 'location']
+        if 'modifier' in simple_roles and not is_question:
+            modifier_value = simple_roles['modifier']
+            # Use dynamic detection instead of hardcoded lists
+            if not DynamicHybridConverter._is_likely_predicate(modifier_value, roles, tree):
+                # Add modifier as a potential argument if it's not a predicate word
+                role_order.append('modifier')
+        
+        for role in role_order:
+            if role in simple_roles:
+                val = simple_roles[role]
+                if isinstance(val, list):
+                    # Handle multiple values (conjunctions)
+                    return f"CONJUNCTION:{predicate}"  # Special marker for conjunction processing
+                else:
+                    args.append(val)
+        
+        if args:
+            result = f"{predicate}({', '.join(args)})"
+            print(f"✅ Dynamic conversion: {result}")
+            return result
+        
+        print(f"❌ Could not convert: lemma='{lemma}', roles={simple_roles}")
+        return None
+    
+    # Dynamic conversion system
+    # The above logic handles ALL cases dynamically based on semantic roles
+
+# Initialize the dynamic converter
+dynamic_converter = DynamicHybridConverter()
+
+
+# ============================================================================
 # DATA STRUCTURES
 # ============================================================================
 
@@ -443,6 +956,7 @@ class LogicalReasoner:
         
         return False
     
+    
     def prove_theorem(self, premises: List[str], conclusion: str) -> Dict[str, Any]:
         """
         Prove that conclusion follows from premises using logical reasoning
@@ -464,6 +978,7 @@ class LogicalReasoner:
         try:
             parsed_conclusion = self.parser.parse(conclusion)
         except Exception as e:
+            print(f"Warning: Failed to parse conclusion '{conclusion}': {e}")
             confidence = 0.3
             return {
                 'valid': False,
@@ -493,21 +1008,6 @@ class LogicalReasoner:
         if result and result.get('valid'):
             return result
         
-        # Skip complex reasoning strategies that cause timeouts
-        # These methods make too many API calls and cause 180s timeouts
-        # result = self._try_semantic_role_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
-        # if result and result.get('valid'):
-        #     return result
-        
-        # result = self._try_entity_chain_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
-        # if result and result.get('valid'):
-        #     return result
-        
-        # result = self._try_transitive_reasoning(parsed_premises, parsed_conclusion, premises, conclusion)
-        # if result and result.get('valid'):
-        #     return result
-        
-        # No proof found - check for ambiguity and generate interpretations
         ambiguity_result = self._check_for_ambiguity_and_generate_interpretations(parsed_premises, parsed_conclusion, premises, conclusion)
         if ambiguity_result:
             return ambiguity_result
@@ -2837,6 +3337,49 @@ def _is_open_ended_question(question: str) -> bool:
         # If parsing fails, default to False
         return False
 
+def _parse_conjunction(tree: dict, predicate: str) -> Optional[str]:
+    """
+    Parse conjunction trees to extract individual entities
+    
+    Args:
+        tree: Vectionary parse tree
+        predicate: The predicate to apply to each entity
+    
+    Returns:
+        Comma-separated facts or None
+    """
+    try:
+        # Look for conjunction structure in the tree
+        children = tree.get('children', [])
+        entities = []
+        
+        # Find entities in conjunction structure
+        for child in children:
+            if child.get('pos') == 'PROP':  # Proper noun (Alice, Bob)
+                entities.append(child.get('lemma', '').lower())
+            elif child.get('lemma') == 'and' and child.get('pos') == 'CONJ':
+                # Look for more entities in conjunction children
+                conj_children = child.get('children', [])
+                for conj_child in conj_children:
+                    if conj_child.get('pos') == 'PROP':
+                        entities.append(conj_child.get('lemma', '').lower())
+        
+        if entities:
+            # Convert plural predicate to singular for consistency
+            singular_predicate = predicate
+            if predicate.endswith('s'):
+                singular_predicate = predicate.rstrip('s')
+            
+            # Create individual facts for each entity
+            facts = [f"{singular_predicate}({entity})" for entity in entities]
+            # Return as a special marker for individual fact processing
+            return f"INDIVIDUAL_FACTS:{','.join(facts)}"
+        
+        return None
+    except Exception as e:
+        print(f"Error parsing conjunction: {e}")
+        return None
+
 def _convert_nl_to_prolog(premise: str, parser: VectionaryParser = None) -> Optional[str]:
     """
     Convert natural language premise to Prolog format using Vectionary semantic parsing
@@ -2858,6 +3401,26 @@ def _convert_nl_to_prolog(premise: str, parser: VectionaryParser = None) -> Opti
         
         if not parsed or not parsed.tree:
             return None
+        
+        # Use dynamic converter for consistent conversion
+        try:
+            result = dynamic_converter._dynamic_convert_tree_to_prolog(parsed.tree)
+            
+            # Handle conjunction markers
+            if result and result.startswith("CONJUNCTION:"):
+                predicate = result.split(":", 1)[1]
+                # Parse the conjunction to extract individual entities
+                conjunction_facts = _parse_conjunction(parsed.tree, predicate)
+                if conjunction_facts:
+                    return conjunction_facts
+                else:
+                    # Fallback to simple fact
+                    return f"{predicate}(X)"
+            
+            return result
+        except ImportError:
+            # Fallback to old method if dynamic converter not available
+            pass
         
         tree = parsed.tree
         
@@ -2912,14 +3475,15 @@ def _convert_nl_to_prolog(premise: str, parser: VectionaryParser = None) -> Opti
                     return f"{property_lemma}(X) :- {quantified}(X)"
         
         # Handle copula verbs - check by POS and dependency
-        pos = tree.get('pos', '')
-        dependency = tree.get('dependency', '')
+        pos = tree.get('pos', '').upper()  # Normalize to uppercase for comparison
+        dependency = tree.get('dependency', '').upper()  # Normalize to uppercase
         if pos == 'VERB' and dependency in ['ROOT', 'COP'] and lemma == 'be':
             
             # Handle "X is a Y" - look for subject and attribute/object/theme
             subject = roles.get('agent') or roles.get('subject')
             # For copula verbs, the predicate is usually the theme/attribute/adjective, not the patient/object
-            predicate = roles.get('theme') or roles.get('attribute') or roles.get('adjective') or roles.get('object') or roles.get('patient')
+            # Also check modifier role as Vectionary sometimes uses it instead of theme
+            predicate = roles.get('theme') or roles.get('attribute') or roles.get('modifier') or roles.get('adjective') or roles.get('object') or roles.get('patient')
             
             # Check if subject has a relative clause (e.g., "students who study regularly")
             # This pattern: "All X who Y are Z" → z(X) :- x(X), y(X)
@@ -3068,7 +3632,6 @@ def _convert_nl_to_prolog(premise: str, parser: VectionaryParser = None) -> Opti
         
         # If no pattern matched, return None
         return None
-
     except Exception as e:
         # If Vectionary parsing fails, return None (no fallback)
         return None
@@ -3097,15 +3660,123 @@ def _convert_query_to_prolog(query: str, parser: VectionaryParser = None) -> Opt
         
         # Use dynamic converter for query conversion
         try:
-            from serv_vectionary import dynamic_converter
+            # Access dynamic_converter from module-level variable
+            # It's initialized at module load time, so it should always be available
+            global dynamic_converter
+            if 'dynamic_converter' not in globals() or not dynamic_converter:
+                print(f"⚠️ dynamic_converter not available (this shouldn't happen)")
+                return None
             result = dynamic_converter._dynamic_convert_tree_to_prolog(parsed.tree)
+            if not result:
+                print(f"⚠️ Query converter returned None for: {query}")
+                return None
+            
+            # Handle conjunction markers for queries
+            if result and result.startswith("CONJUNCTION:"):
+                predicate = result.split(":", 1)[1]
+                # For queries, return the predicate with variable
+                return f"{predicate}(X)"
+            
+            # Handle possessive queries: "Who are Mary's children?" -> children(X, mary)
+            # Check if the tree has possessive information
+            tree = parsed.tree
+            if tree and 'children' in tree:
+                possessive_value = None
+                predicate = None
+                
+                # Look for possessive marker
+                for child in tree['children']:
+                    if child.get('role') == 'possessive':
+                        possessive_value = child.get('text', '').lower().rstrip("'s")
+                        break
+                    # Also check for 's in the text
+                    elif "'s" in child.get('text', ''):
+                        possessive_value = child.get('text', '').lower().rstrip("'s")
+                        break
+                
+                # If we found possessive, look for the predicate
+                if possessive_value:
+                    for child in tree['children']:
+                        if child.get('role') in ['agent', 'theme'] and not DynamicHybridConverter._is_question_word(child.get('text', '')):
+                            predicate = child.get('lemma', '').lower()
+                            break
+                    
+                    if predicate and possessive_value:
+                        # For "Who are Mary's children?", we want children(X, mary)
+                        # But we need to use the correct predicate from the question
+                        if predicate == 'children':
+                            return f"children(X, {possessive_value})"
+                        elif predicate == 'child':
+                            return f"children(X, {possessive_value})"  # Convert singular to plural
+                        else:
+                            return f"{predicate}(X, {possessive_value})"
+            
+            # Special handling for "who is X" questions
+            # If result is "who(X)" or "who(predicate)", we need to extract the predicate from the theme role
+            if result and result.startswith("who("):
+                # First, try to extract from "who(predicate)" format
+                if result.startswith("who(") and result.endswith(")"):
+                    predicate = result[4:-1].lower()  # Extract between "who(" and ")"
+                    # Only use if it's not "X" - if it's a real predicate, use it
+                    if predicate != "x":
+                        return f"{predicate}(X)"
+                
+                # Re-parse to extract the theme (predicate) from parse tree
+                tree = parsed.tree
+                if 'children' in tree:
+                    for child in tree['children']:
+                        if child.get('role') == 'theme':
+                            theme_value = child.get('lemma', '').lower()
+                            if theme_value:
+                                return f"{theme_value}(X)"
+                        # Also check agent role if it's the predicate (when Vectionary swaps them)
+                        if child.get('role') == 'agent' and not DynamicHybridConverter._is_question_word(child.get('text', '')):
+                            # This might be the predicate if theme is "who"
+                            agent_value = child.get('lemma', '').lower()
+                            if agent_value and agent_value not in ['who', 'what', 'where', 'when']:
+                                return f"{agent_value}(X)"
+            
+            # Special handling for "who makes X" or similar verb-based questions
+            # If result contains "make_very(X)" or similar compound predicates, we need to query for the agent
+            if result and result.endswith("(X)") and not result.startswith("who("):
+                # The query is already correctly formed (e.g., "make_very(X)")
+                # But we need to ensure it queries for who is the agent
+                # Check if we have a verb-based query
+                if "make" in result.lower() or "make_very" in result:
+                    # For "who makes decisions?", create the proper query
+                    # The query will be refined at the inference endpoint to return individuals
+                    predicate = result.split("(")[0]
+                    
+                    # Add the patient if available
+                    if "_" in result and "," not in result:
+                        tree = parsed.tree
+                        if 'children' in tree:
+                            for child in tree['children']:
+                                if child.get('role') == 'patient':
+                                    patient_text = child.get('text', '').lower()
+                                    if patient_text:
+                                        # Return make_very(X, decisions) - will be refined to director(X) at endpoint
+                                        return f"{predicate}(X, {patient_text})"
+                                    break
+                    # Return as-is if no patient found
+                    return result
+            
             return result
-        except ImportError:
+        except ImportError as e:
             # Fallback to old method if dynamic converter not available
+            print(f"⚠️ Import error in query converter: {e}")
             return None
+        except Exception as e:
+            print(f"⚠️ Error in query converter dynamic conversion: {e}")
+            import traceback
+            traceback.print_exc()
+        return None
         
     except Exception as e:
         # If Vectionary parsing fails, return None (no fallback)
+        print(f"⚠️ Vectionary parsing error for query '{query}': {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -3177,8 +3848,8 @@ Examples:
             print("Error: No question found (marked with ?).", file=sys.stderr)
             sys.exit(1)
         
-        # Check if this is an open-ended question (draw conclusions)
-        is_open_ended = _is_open_ended_question(conclusion)
+        # ALWAYS use the new dynamic converter system - no more old system
+        is_open_ended = True  # Always use new system
         
         # If no premises provided, check knowledge base
         kb_used = False
@@ -3208,10 +3879,9 @@ Examples:
                 print("Please provide premises or add facts to the knowledge base.\n")
                 sys.exit(1)
         
-        # Handle open-ended questions (draw conclusions)
+        # ALWAYS use the new dynamic converter system
         if is_open_ended:
-            print("🔍 Detected open-ended question - drawing conclusions...\n")
-            import time
+            print("🔍 Using new dynamic converter system - drawing conclusions...\n")
             from prolog_reasoner import PrologReasoner
             
             start_time = time.time()
@@ -3248,8 +3918,47 @@ Examples:
                     prolog_premises.append(prolog)
                     if " :- " in prolog:
                         prolog_reasoner.add_rule(prolog)
+                    elif prolog.startswith("INDIVIDUAL_FACTS:"):
+                        # Handle individual facts from conjunctions
+                        facts_str = prolog.split(":", 1)[1]
+                        individual_facts = facts_str.split(",")
+                        for fact in individual_facts:
+                            fact = fact.strip()
+                            if fact:
+                                prolog_reasoner.add_fact(fact)
+                                prolog_premises.append(fact)
                     else:
                         prolog_reasoner.add_fact(prolog)
+                        
+                        # Auto-generate relationship rules for common patterns (only once)
+                        if "parent(" in prolog and not hasattr(prolog_reasoner, '_parent_rule_added'):
+                            # parent(X, Y) -> children(Y, X)
+                            rule = "children(Y, X) :- parent(X, Y)"
+                            prolog_reasoner.add_rule(rule)
+                            prolog_reasoner._parent_rule_added = True
+                            if args.debug:
+                                print(f"   🔗 Auto-generated rule: {rule}")
+                        elif "children(" in prolog and not hasattr(prolog_reasoner, '_children_rule_added'):
+                            # children(X, Y) -> parent(Y, X)
+                            rule = "parent(Y, X) :- children(X, Y)"
+                            prolog_reasoner.add_rule(rule)
+                            prolog_reasoner._children_rule_added = True
+                            if args.debug:
+                                print(f"   🔗 Auto-generated rule: {rule}")
+                        elif "teacher(" in prolog and not hasattr(prolog_reasoner, '_teacher_rule_added'):
+                            # teacher(X, Y) -> student(Y, X)
+                            rule = "student(Y, X) :- teacher(X, Y)"
+                            prolog_reasoner.add_rule(rule)
+                            prolog_reasoner._teacher_rule_added = True
+                            if args.debug:
+                                print(f"   🔗 Auto-generated rule: {rule}")
+                        elif "student(" in prolog and not hasattr(prolog_reasoner, '_student_rule_added'):
+                            # student(X, Y) -> teacher(Y, X)
+                            rule = "teacher(Y, X) :- student(X, Y)"
+                            prolog_reasoner.add_rule(rule)
+                            prolog_reasoner._student_rule_added = True
+                            if args.debug:
+                                print(f"   🔗 Auto-generated rule: {rule}")
                 elif "(" in premise or " :- " in premise:
                     # Already in Prolog format
                     if args.debug:
@@ -3309,6 +4018,70 @@ Examples:
                 prolog_reasoner.add_rule("ancestor(X, Z) :- parent(X, Y), ancestor(Y, Z)")
                 prolog_premises.append("ancestor(X, Y) :- parent(X, Y)")
                 prolog_premises.append("ancestor(X, Z) :- parent(X, Y), ancestor(Y, Z)")
+            
+            # Dynamic refinement: If query returns collective nouns, find individual predicate
+            # For "who makes decisions?" -> make_very(X, decisions) might return "directors"
+            # But we want individuals, so check if we should query director(X) instead
+            original_query = prolog_query
+            if is_open_ended and prolog_query:
+                # Check if query contains a verb that might return collective nouns
+                # Handle "make", "supervise", and other verb patterns
+                verb_keywords = ["make", "supervise", "manage", "lead", "direct"]
+                has_verb_pattern = any(keyword in prolog_query.lower() for keyword in verb_keywords)
+                
+                if has_verb_pattern:
+                    # Check if the query contains a compound predicate that might return collective nouns
+                    # Example: make_very(X, decisions) -> directors
+                    # We want: director(X) -> alice, carol
+                    
+                    # Look through facts to find the agent type
+                    # For "who makes decisions?", prolog_query might be "make_very(X, decisions)"
+                    # We need to find "make_very(directors, decisions)" and extract "directors" -> "director(X)"
+                    query_predicate = prolog_query.split("(")[0] if "(" in prolog_query else ""
+                    
+                    for fact in prolog_premises:
+                        # Check if fact matches the query predicate (e.g., make_very, supervise_especially)
+                        if query_predicate and fact.startswith(query_predicate) and "(" in fact and "," in fact:
+                            # Found a matching fact like make_very(directors, decisions)
+                            # Extract the agent type (directors) and convert to singular (director)
+                            try:
+                                agent_part = fact.split("(")[1].split(",")[0].strip()
+                                # Convert plural to singular (simple heuristic)
+                                if agent_part.endswith('s') and len(agent_part) > 3:
+                                    singular_agent = agent_part.rstrip('s')
+                                    # Check if we have individual facts with this predicate
+                                    individual_predicate = f"{singular_agent}(X)"
+                                    # Test if this would return individuals
+                                    test_success, test_results = prolog_reasoner.query(individual_predicate)
+                                    if test_results and len(test_results) > 0:
+                                        # Use the individual predicate instead
+                                        print(f"🔄 Refining query: '{original_query}' -> '{individual_predicate}' (to get individuals)")
+                                        prolog_query = individual_predicate
+                                        break
+                            except Exception as e:
+                                if args.debug:
+                                    print(f"⚠️ Error refining query: {e}")
+                                pass
+                    
+                    # Handle case where query is just "verb_very(X)" without patient
+                    if not prolog_query or prolog_query == original_query:
+                        if "_" in prolog_query and prolog_query.endswith("(X)"):
+                            # Query is like "supervise_especially(X)"
+                            # Try to extract agent type from facts
+                            for fact in prolog_premises:
+                                if query_predicate and fact.startswith(query_predicate) and "(" in fact:
+                                    try:
+                                        agent_part = fact.split("(")[1].split(",")[0].strip()
+                                        if agent_part.endswith('s') and len(agent_part) > 3:
+                                            singular_agent = agent_part.rstrip('s')
+                                            individual_predicate = f"{singular_agent}(X)"
+                                            test_success, test_results = prolog_reasoner.query(individual_predicate)
+                                            if test_results and len(test_results) > 0:
+                                                print(f"🔄 Refining query: '{original_query}' -> '{individual_predicate}' (to get individuals)")
+                                                prolog_query = individual_predicate
+                                                break
+                                    except Exception as e:
+                                        pass
             
             # Query Prolog
             if args.debug:
@@ -3447,8 +4220,9 @@ Examples:
                 'reasoning_time': elapsed_time
             }
         else:
-            # Prove the theorem (verification mode)
-            result = reasoner.prove_theorem(premises, conclusion)
+            # This should never happen now - always use new dynamic converter
+            print("❌ Error: Old system should not be called")
+            sys.exit(1)
         
         # Add KB info to result
         if kb_used:

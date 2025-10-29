@@ -6,6 +6,7 @@ Integrates DeepSeek-OCR with existing logical reasoning capabilities
 import os
 import json
 import tempfile
+import time
 from typing import Dict, Any, List, Optional, Tuple, Union
 from pathlib import Path
 import logging
@@ -21,7 +22,7 @@ try:
     SIMPLE_OCR_AVAILABLE = True
 except ImportError:
     SIMPLE_OCR_AVAILABLE = False
-from hybrid_reasoner import HybridReasoner
+# Dynamic converter will be imported as needed
 from vectionary_knowledge_base import VectionaryKnowledgeBase
 from ELMS import VectionaryParser, VectionaryAPIClient
 
@@ -60,7 +61,6 @@ class VisualReasoner:
         # Initialize reasoning components
         api_client = VectionaryAPIClient(environment=environment)
         self.parser = VectionaryParser(api_client)
-        self.hybrid_reasoner = HybridReasoner(self.parser)
     
     def _initialize_ocr(self):
         """Lazy initialization of OCR processor"""
@@ -217,11 +217,87 @@ class VisualReasoner:
                     'question': question
                 }
             
-            # Use hybrid reasoning to answer the question
-            reasoning_result = self.hybrid_reasoner.infer_conclusions(
-                premises=premises,
-                query=question
-            )
+            # Use dynamic converter to answer the question
+            from prolog_reasoner import PrologReasoner
+            
+            # Convert premises to Prolog
+            from ELMS import _convert_nl_to_prolog, _convert_query_to_prolog
+            prolog_facts = []
+            for premise in premises:
+                prolog = _convert_nl_to_prolog(premise, self.parser)
+                if prolog:
+                    prolog_facts.append(prolog)
+            
+            # Convert question to Prolog query
+            prolog_query = _convert_query_to_prolog(question, self.parser)
+            if not prolog_query:
+                return {
+                    'success': False,
+                    'error': 'Could not convert question to Prolog query'
+                }
+            
+            # Dynamic fix: If query is "who(X)", extract predicate from question's theme role
+            # This handles cases where Vectionary assigns "who" as agent instead of using theme
+            if prolog_query == "who(X)" or prolog_query.startswith("who("):
+                # Re-parse the question to extract the theme (predicate)
+                try:
+                    parsed = self.parser.parse(question)
+                    if parsed and parsed.tree:
+                        # Look for theme role in the question
+                        theme_value = None
+                        if 'children' in parsed.tree:
+                            for child in parsed.tree['children']:
+                                if child.get('role') == 'theme':
+                                    theme_value = child.get('text', '').lower()
+                                    break
+                        
+                        # If theme found, use it as predicate
+                        if theme_value:
+                            prolog_query = f"{theme_value}(X)"
+                        else:
+                            # Fallback: find the most common predicate in facts
+                            from collections import Counter
+                            predicates = [f.split("(")[0] for f in prolog_facts if "(" in f and " :- " not in f]
+                            if predicates:
+                                most_common = Counter(predicates).most_common(1)[0][0]
+                                prolog_query = f"{most_common}(X)"
+                except Exception as e:
+                    # If parsing fails, use fallback approach
+                    from collections import Counter
+                    predicates = [f.split("(")[0] for f in prolog_facts if "(" in f and " :- " not in f]
+                    if predicates:
+                        most_common = Counter(predicates).most_common(1)[0][0]
+                        prolog_query = f"{most_common}(X)"
+            
+            # Query Prolog
+            reasoner = PrologReasoner()
+            for fact in prolog_facts:
+                if " :- " in fact:
+                    reasoner.add_rule(fact)
+                else:
+                    reasoner.add_fact(fact)
+            
+            start_time = time.time()
+            success, results = reasoner.query(prolog_query)
+            reasoning_time = time.time() - start_time
+            
+            if not success:
+                return {
+                    'success': False,
+                    'error': f'Query failed: {prolog_query}'
+                }
+            
+            conclusions = []
+            for result in results:
+                if isinstance(result, dict):
+                    conclusions.extend(result.values())
+                else:
+                    conclusions.append(result)
+            
+            reasoning_result = {
+                'conclusions': conclusions,
+                'reasoning_time': reasoning_time
+            }
             
             return {
                 'success': True,
@@ -283,10 +359,45 @@ class VisualReasoner:
                     if analysis.get('logical_content'):
                         all_premises.extend([stmt['text'] for stmt in analysis['logical_content']])
                 
-                reasoning_result = self.hybrid_reasoner.infer_conclusions(
-                    premises=all_premises,
-                    query=comparison_question
-                )
+                # Use dynamic converter for comparison
+                from prolog_reasoner import PrologReasoner
+                
+                from ELMS import _convert_nl_to_prolog, _convert_query_to_prolog
+                prolog_facts = []
+                for premise in all_premises:
+                    prolog = _convert_nl_to_prolog(premise, self.parser)
+                    if prolog:
+                        prolog_facts.append(prolog)
+                
+                prolog_query = _convert_query_to_prolog(comparison_question, self.parser) if comparison_question else None
+                
+                reasoner = PrologReasoner()
+                for fact in prolog_facts:
+                    if " :- " in fact:
+                        reasoner.add_rule(fact)
+                    else:
+                        reasoner.add_fact(fact)
+                
+                start_time = time.time()
+                if prolog_query:
+                    success, results = reasoner.query(prolog_query)
+                    if not success:
+                        results = []
+                else:
+                    success, results = True, []
+                reasoning_time = time.time() - start_time
+                
+                conclusions = []
+                for result in results:
+                    if isinstance(result, dict):
+                        conclusions.extend(result.values())
+                    else:
+                        conclusions.append(result)
+                
+                reasoning_result = {
+                    'conclusions': conclusions,
+                    'reasoning_time': reasoning_time
+                }
                 
                 comparison_answer = {
                     'answer': reasoning_result.get('conclusions', []),
