@@ -3861,10 +3861,10 @@ Examples:
             kb = VectionaryKnowledgeBase()
             
             # Check if KB has any facts before querying
-            if not kb.facts or len(kb.facts) == 0:
+            if not kb.facts:
                 print("❌ Knowledge base is empty.")
                 print("Please provide premises or add facts to the knowledge base.\n")
-            sys.exit(1)
+                sys.exit(1)
         
             kb_result = kb.query(conclusion)
             
